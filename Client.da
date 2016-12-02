@@ -1,0 +1,11 @@
+common = import_da('common')
+
+class Client(process):
+	def setup(configFile:str,coIdMap:dict,clientId:dict): 
+		self.resumeFlag = False 
+		self.configHashMap={}
+	def run():
+		#read from config file
+		self.configHashMap = common.readConfigFile(configFile)
+		output("Hello from client!!!")
+

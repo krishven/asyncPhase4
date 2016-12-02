@@ -1,0 +1,13 @@
+coordinator = import_da('Coordinator')
+common = import_da('common')
+dbEmulator = import_da('DbEmulator')
+
+
+class Worker(process):
+	def setup(configFile:str,dbId: dbEmulator.DbEmulator):
+		self.configHashMap={}
+
+	def run():
+		self.configHashMap = common.readConfigFile(configFile)
+		output("Hello from Worker!!!")
+		#await(False)

@@ -1,0 +1,70 @@
+import time
+import uuid
+
+configHashMap={}
+
+#Function to read config file and store it in HashMap
+def readConfigFile(fileName):
+	with open(fileName) as f:
+			lines = f.read().splitlines()
+	for line in lines:
+		temp = line.split("=")
+		configHashMap[temp[0]]=temp[1] 
+
+	#The following fields will be comma separated , split the fields based on comma and add to list 
+
+	subIdList = configHashMap['subjectId'].split(',')	
+	resIdList = configHashMap['resourceId'].split(',')
+	uniqueIdList = configHashMap['uniqueId'].split(',')
+	waitTimeList = configHashMap['waitTime'].split(",")
+	actionList = configHashMap['action'].split(",")
+
+	configHashMap['subjectId']=subIdList
+	configHashMap['resourceId']=resIdList
+	configHashMap['uniqueId']=uniqueIdList
+	configHashMap['waitTime']=waitTimeList
+	configHashMap['action']=actionList
+	return configHashMap
+
+
+#App Request Object Class
+class AppRequest():
+	def __init__(self, subId, resId, waitTime, action, clientProcId):
+		self.subId = subId
+		self.resId = resId
+		self.subCoId = None
+		self.resCoId = None
+		self.waitTime = waitTime
+		self.action = action
+		self.clientId = clientProcId
+		self.uniqueId = uuid.uuid4().hex
+		self.isTentative = False
+		self.testFail = None
+		self.testConflict = False
+		self.tentativeUpdate = {}
+		self.timestamp = time.time()
+		self.tentativeTime = None
+		self.result = {}
+		self.conflict = None
+		self.subRules = {}
+		self.resRules = {}
+
+	def __repr__(self):
+		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)
+
+	def __str__(self):
+		return "ReqObject subId:%s, resID:%s action:%s, timestamp:%s, clientId:%s, tentative:%s, result:%s, subRules:%s, resRules:%s" % (self.subId, self.resId,self.action,self.timestamp,self.clientId,
+				self.tentativeUpdate,self.result,self.subRules,self.resRules)
+		
+
+#Database Object Class
+class DbObject():
+	def __init__(self):
+		self.reqObject=None
+		self.database={}
+
+	def __repr__(self):
+		return "<DB db:%s>" % (self.database)
+
+	def __str__(self):
+		return "Database:%s" % (self.database)

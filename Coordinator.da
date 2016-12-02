@@ -1,0 +1,35 @@
+common = import_da('common')
+dbEmulator = import_da('DbEmulator')
+import logging
+
+import time
+import uuid
+import copy
+import pprint
+
+#stores all original requests indexed by unique id
+requests = {}
+#stores all tentative updates indexed by unique id
+tentative = {}
+#stores status of all tentative updates indexed by unique id
+tentStatus = {}
+#stores all updated subject attributes for conlfict check
+updates = {}
+#stores all requests that are waiting for tentative parent
+waiting = {}
+
+#possible status of tentative updates
+ongoing = 1
+success = 2
+failure = 3
+
+class Coordinator(process):
+	def setup(configFile:str,coIdMap:dict,dbId:dbEmulator.DbEmulator):
+		self.configHashMap={}
+
+	def run():
+		#output("hello SubCo!")
+		self.configHashMap = common.readConfigFile(configFile)
+		output("Hello Im coordinator!!!")
+		#await(False)
+
