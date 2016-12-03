@@ -2,6 +2,7 @@ import time
 import uuid
 
 configHashMap={}
+objHashMap={}
 
 #Function to read config file and store it in HashMap
 def readConfigFile(fileName):
@@ -27,27 +28,27 @@ def readConfigFile(fileName):
 	return configHashMap
 
 
+def findObject(appReq, order):
+	if((appReq.subId)%2!=0):
+		return appReq.subId
+	else:
+		return appReq.resId	
+
+
 #App Request Object Class
 class AppRequest():
-	def __init__(self, subId, resId, waitTime, action, clientProcId):
+	def __init__(self,subId,resId,action, clientProcId):
 		self.subId = subId
 		self.resId = resId
-		self.subCoId = None
-		self.resCoId = None
-		self.waitTime = waitTime
+		self.order = None
+		self.reqId = None
+		self.cachedUpdates = None
+		self.readAttr=None
+		self.updateIndex=None
+		self.rdOnlyIndex=None
 		self.action = action
 		self.clientId = clientProcId
-		self.uniqueId = uuid.uuid4().hex
-		self.isTentative = False
-		self.testFail = None
-		self.testConflict = False
-		self.tentativeUpdate = {}
-		self.timestamp = time.time()
-		self.tentativeTime = None
-		self.result = {}
-		self.conflict = None
-		self.subRules = {}
-		self.resRules = {}
+		self.updates=None
 
 	def __repr__(self):
 		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)

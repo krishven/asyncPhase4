@@ -31,5 +31,11 @@ class Coordinator(process):
 		#output("hello SubCo!")
 		self.configHashMap = common.readConfigFile(configFile)
 		output("Hello Im coordinator!!!")
-		#await(False)
+		await(False)
+	
+	def receive(msg=('READ_REQUEST',reqObject),from_=recvProcId):
+		output("Received read msg from client")
 
+
+	def receive(msg=('WRITE_REQUEST',reqObject),from_=recvProcId):
+		output("Received write req msg from client")
