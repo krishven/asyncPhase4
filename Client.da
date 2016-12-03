@@ -6,7 +6,7 @@ class Client(process):
 		self.configHashMap={}
 
 	def findCoordinator(obj):
-		numCoordinators = int(self.configHashMap['numCoordinators'])
+		numCoordinators = int(configHashMap['numCoordinators'])
 		index = obj%numCoordinators
 		return coIdMap[index]
 
@@ -17,7 +17,8 @@ class Client(process):
 		subIdList = configHashMap['subjectId']
 		resIdList = configHashMap['resourceId']
 		actionList = configHashMap['action']
-		i=0
+		numClients = int(configHashMap['numClients'])
+		i=clientId[self.id]%numClients
 		while (i<len(subIdList)):
 			appReq = common.AppRequest(int(subIdList[i]),int(resIdList[i]),actionList[i],self.id)
 			obj = common.findObject(appReq,1)
@@ -29,8 +30,9 @@ class Client(process):
 				send(('READ_REQUEST',appReq,),to=coordinatorId)
 			await(self.resumeFlag)
 			self.resumeFlag=False
+			i+=numClients
 
-	def receive(msg = (reqObject,), from_ = subCoId):
+	def receive(msg =("RESULT_RDONLY",reqObject,), from_ = subCoId):
 		output("Result recvd")
 		self.resumeFlag = True
 			

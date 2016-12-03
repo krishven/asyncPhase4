@@ -24,18 +24,46 @@ success = 2
 failure = 3
 
 class Coordinator(process):
-	def setup(configFile:str,coIdMap:dict,dbId:dbEmulator.DbEmulator):
+	def setup(configFile:str,coIdMap:dict,workerResCoMap:dict,dbId:dbEmulator.DbEmulator):
 		self.configHashMap={}
+		self.workerIndex=0
 
 	def run():
 		#output("hello SubCo!")
 		self.configHashMap = common.readConfigFile(configFile)
 		output("Hello Im coordinator!!!")
 		await(False)
+
+	def findCoordinator(obj):
+		numCoordinators = int(configHashMap['numCoordinators'])
+		index = obj%numCoordinators
+		return coIdMap[index]
 	
-	def receive(msg=('READ_REQUEST',reqObject),from_=recvProcId):
-		output("Received read msg from client")
+	def getWorker():
+		numWorkers = int(configHashMap['numWorkers'])
+		workerList = workerResCoMap[self.id]
+		index = self.workerIndex % numWorkers
+		self.workerIndex+=1
+		if(workerIndex>=numWorkers):
+			workerIndex=0
+		return workerList[index]
+
+	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
+		if(req.order==1):
+			output("Received read msg from client order 1")
+			obj = common.findObject(req,2)
+			coordinatorId = findCoordinator(obj)
+			req.order=2
+			send(('READ_REQUEST',req,),to=coordinatorId)
+
+		else:
+			output("Received read msg from client order 2")
+			workerId = getWorker()
+			send(('READ_REQUEST',req,),to=workerId)	
 
 
-	def receive(msg=('WRITE_REQUEST',reqObject),from_=recvProcId):
+	def receive(msg=('WRITE_REQUEST',req),from_=recvProcId):
 		output("Received write req msg from client")
+
+	def receive(msg=('RESULT_RDONLY',req),from_=recvProcId):
+		output("Received result readonly from worker")

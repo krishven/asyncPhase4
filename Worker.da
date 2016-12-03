@@ -4,10 +4,28 @@ dbEmulator = import_da('DbEmulator')
 
 
 class Worker(process):
-	def setup(configFile:str,dbId: dbEmulator.DbEmulator):
+	def setup(configFile:str,coIdMap:dict,dbId: dbEmulator.DbEmulator):
 		self.configHashMap={}
 
 	def run():
 		self.configHashMap = common.readConfigFile(configFile)
 		output("Hello from Worker!!!")
-		#await(False)
+		await(False)
+
+	def findCoordinator(obj):
+		numCoordinators = int(configHashMap['numCoordinators'])
+		index = obj%numCoordinators
+		return coIdMap[index]
+
+	
+	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
+		
+		req.updateIndex=-1  #testing purpose
+
+		if(req.updateIndex == -1):
+			send(("RESULT_RDONLY",req,),to=req.clientId)
+			for i in range(0,2):
+				obj = common.findObject(req,i)
+				req.order = i
+				coordinatorId = findCoordinator(obj)
+				send(("RESULT_RDONLY",req,),to=coordinatorId)	

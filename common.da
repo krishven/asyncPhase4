@@ -3,6 +3,7 @@ import uuid
 
 configHashMap={}
 objHashMap={}
+requestMap={}
 
 #Function to read config file and store it in HashMap
 def readConfigFile(fileName):
@@ -29,10 +30,18 @@ def readConfigFile(fileName):
 
 
 def findObject(appReq, order):
-	if((appReq.subId)%2!=0):
-		return appReq.subId
+	if(appReq.subId > appReq.resId):
+		obj1=appReq.subId
+		obj2=appReq.resId
 	else:
-		return appReq.resId	
+		obj1=appReq.resId
+		obj2=appReq.subId
+			
+	if(order==1):
+		return obj1
+	else:
+		return obj2
+
 
 
 #App Request Object Class
