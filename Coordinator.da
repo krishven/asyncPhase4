@@ -164,7 +164,7 @@ class Coordinator(process):
 			v = latestVersionBefore(obj, attr, req.ts)
 			if req.id in v.pendingMightRead:
 				v.pendingMightRead.remove(req.id)
-			if attr in req.readAttr[req.order]:
+			if attr in req.readAttr[req.order - 1]:
 				v.rts = req.ts
 
 	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
