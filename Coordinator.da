@@ -171,6 +171,9 @@ class Coordinator(process):
 
 			conflict = checkForConflicts(req)
 			if not conflict:
+				
+				send(('DB_WRITE',req,),to=dbId)
+
 				for item in req.updates:
 					if obj in cachedUpdates:
 						cachedUpdates[obj].append(item)
