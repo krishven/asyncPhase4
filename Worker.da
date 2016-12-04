@@ -14,7 +14,7 @@ class Worker(process):
 
 	def run():
 		self.configHashMap = common.readConfigFile(configFile)
-		output("Hello from Worker!!!")
+		#output("Hello from Worker!!!")
 		await(False)
 
 	def findCoordinator(obj):
@@ -92,7 +92,6 @@ class Worker(process):
 							tentUsed = True
 							break
 
-				print('Subject cond evaluated')
 				#make sure DB is not checked if tentative has been used
 				if tentUsed == True and subCond == True:
 					tentUsed = False
@@ -203,42 +202,32 @@ class Worker(process):
 		else:
 			output(req.subId,req.action,req.resId, 'Policy eval:', result['value'])
 		return result
-
-	def initDB(dbFile):
-		#read from database.xml and store in memory cache
-		tree = ET.parse(dbFile)
-		root = tree.getroot()
-		for subj in root.iter('subject'):
-			temp = {}
-			for attrName, attrValue in subj.items():
-				if attrName != 'id':
-					temp[attrName] = attrValue
-			database[subj.attrib['id']] = temp
-
-		for res in root.iter('resource'):
-			temp = {}
-			for attrName, attrValue in res.items():
-				if attrName != 'id':
-					temp[attrName] = attrValue
-			database[res.attrib['id']] = temp
-		return database
 	
 	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
 		
-		output("hello")
+		#output("Worker READ_REQUEST")
 		req.updateIndex = -1  #testing purpose
 
 		send(('DB_READ',req,),to=dbId)
-		output("Sent content from Worker (DB READ) to DB:")
+		#output("Sent content from Worker (DB READ) to DB:")
 
+	def receive(msg=('WRITE_REQUEST',req),from_=recvProcId):
+		
+		#output("Worker WRITE_REQUEST")
+		req.updateIndex = -1  #testing purpose
+
+		send(('DB_READ',req,),to=dbId)
+		#output("Sent content from Worker (DB READ) to DB:")
 
 	def receive(msg=('DB_READ',dbObj,), from_=subCoId):
 		req=dbObj.reqObject
 		database=dbObj.database
 		req.updateIndex = -1 
-		output("Received content in Worker (DB READ) from DB:",req)
+		#output("Received content in Worker (DB READ) from DB:",req)
 		
 		req.updates = evaluatePolicyRequest(database, req)
+
+		print(req.updates)
 
 		if(req.updateIndex == -1):
 			send(("RESULT_RDONLY",req,),to=req.clientId)
@@ -247,3 +236,8 @@ class Worker(process):
 				req.order = i
 				coordinatorId = findCoordinator(obj)
 				send(("RESULT_RDONLY",req,),to=coordinatorId)
+		else:
+			obj = common.findObject(req, req.updateIndex)
+			coordinatorId = findCoordinator(obj)
+			req.rdOnlyIndex = 3 - req.updateIndex
+			send(("RESULT_UPDATE",req,),to=coordinatorId)

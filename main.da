@@ -19,7 +19,7 @@ configHashMap={}
 workerResCoMap={}
 
 def main():
-    output("corregct")
+    #output("corregct")
     configHashMap = common.readConfigFile(sys.argv[1])
     numCoordinators = int(configHashMap['numCoordinators'])
     numWorkers = int(configHashMap['numWorkers'])

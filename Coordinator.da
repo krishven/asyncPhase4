@@ -31,7 +31,7 @@ class Coordinator(process):
 	def run():
 		#output("hello SubCo!")
 		self.configHashMap = common.readConfigFile(configFile)
-		output("Hello Im coordinator!!!")
+		#output("Hello Im coordinator!!!")
 		await(False)
 
 	def getCachedUpdates(obj,req):
@@ -40,8 +40,9 @@ class Coordinator(process):
 		if obj in cachedUpdates:
 			updates = cachedUpdates[obj]
 			for item in updates:
-				if item.attr in readAttr:
-					cache[item.attr] = item.value
+				if item['attrName'] in readAttr:
+					cache['attrName'] = item['attrName']
+					cache['attrValue'] = item['attrValue']
 		return cache
 
 	def latestVersionBefore(obj, attr, ts):
@@ -77,12 +78,12 @@ class Coordinator(process):
 
 	def checkForConflicts(req):
 		obj = common.findObject(req, req.updateIndex)
-		for item in req.updates:
-			# note: if obj.attr has not been read or written in this session, then
-			# v is the special version with v.rts=0 and v.wts=0.
-			v = latestVersionBefore(obj, item.attr, req.ts)
-			if v.rts > req.ts:
-				return True
+		item = req.updates
+		# note: if obj.attr has not been read or written in this session, then
+		# v is the special version with v.rts=0 and v.wts=0.
+		v = latestVersionBefore(obj, item['attrName'], req.ts)
+		if v.rts > req.ts:
+			return True
 		return False
 
 	def findCoordinator(obj):
@@ -152,7 +153,7 @@ class Coordinator(process):
 			send(('WRITE_REQUEST',req,),to=workerId)
 
 	def receive(msg=('RESULT_RDONLY',req), from_=recvProcId):
-		output("Received RESULT_RDONLY from client")
+		output("Received RESULT_RDONLY from Worker")
 		obj = common.findObject(req, req.order)
 		for attr in common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
@@ -162,33 +163,39 @@ class Coordinator(process):
 				v.rts = req.ts
 
 	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
+		output("Received RESULT_UPDATE from Worker")
 		obj = common.findObject(req, req.updateIndex)
 		conflict = checkForConflicts(req)
 
 		if not conflict:
-			for item in req.updates:
-				await(not latestVersionBefore(obj,item.attr,req.ts).pendingMightRead or latestVersionBefore(obj,item.attr,req.ts).pendingMightRead.count(req.id) == 1)
+			item = req.updates
+			await(not latestVersionBefore(obj,item['attrName'],req.ts).pendingMightRead or latestVersionBefore(obj,item['attrName'],req.ts).pendingMightRead.count(req.id) == 1)
 
 			conflict = checkForConflicts(req)
+
 			if not conflict:
-				for item in req.updates:
-					if obj in cachedUpdates:
-						cachedUpdates[obj].append(item)
-					else:
-						cachedUpdates[obj] = []
-						cachedUpdates[obj].append(item)
-					newVersion = Version(0,0)
-					newVersion.wts = req.ts
-					if (obj, item.attr) in versionMap:
-						versionMap[(obj,item.attr)].append(newVersion)
-					else:
-						versionMap[(obj,item.attr)] = []
-						versionMap[(obj,item.attr)].append(newVersion)
+				item = req.updates
+				update = {}
+				update['attrName'] = item['attrName']
+				update['attrValue'] = item['attrValue']
+				if obj in cachedUpdates:
+					cachedUpdates[obj].append(update)
+				else:
+					cachedUpdates[obj] = []
+					cachedUpdates[obj].append(update)
+				newVersion = Version(0,0)
+				newVersion.wts = req.ts
+				if (obj, update['attrName']) in versionMap:
+					versionMap[(obj,update['attrName'])].append(newVersion)
+				else:
+					versionMap[(obj,update['attrName'])] = []
+					versionMap[(obj,update['attrName'])].append(newVersion)
 
 				for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
 					v = latestVersionBefore(obj,attr,req.ts)
-					v.pendingMightRead.remove(req.id)
-					if attr in req.readAttr[req.updatedObj]:
+					if req.id in v.pendingMightRead:
+						v.pendingMightRead.remove(req.id)
+					if attr in req.readAttr[req.updateIndex - 1]:
 						v.rts = req.ts
 
 				send(("RESULT_UPDATE",req,),to=req.clientId)

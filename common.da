@@ -32,7 +32,7 @@ def setDefRead(subList,resList,defReadVal):
 
 def defReadAttr(obj,req):
 	value = defReadMap[(req.subId,req.resId)]
-	print(value)
+	#print(value)
 	return value
 
 def setMightRead(subList,resList,mightReadVal):
@@ -60,7 +60,7 @@ def setMightRead(subList,resList,mightReadVal):
 
 def mightReadAttr(obj,req):
 	value = mightReadMap[(req.subId,req.resId)]
-	print(value)
+	#print(value)
 	return value
 
 #Function to read config file and store it in HashMap

@@ -18,7 +18,7 @@ class DbEmulator(process):
 		database = initDB(configHashMap['dbFile'])
 		#print ("sollo:",database['1'])
 		self.dbObj.database = database
-		output("Hello from DB!!!")
+		#output("Hello from DB!!!")
 		await(False)
 
 	def initDB(dbFile):
@@ -43,8 +43,8 @@ class DbEmulator(process):
 
 	def receive(msg=('DB_READ',reqObject,), from_=srcId):
 		#DB Read request
-		output("Received content in DB (DB READ) from Worker")
+		#output("Received content in DB (DB READ) from Worker")
 		self.dbObj.reqObject = reqObject
-		output('Read from database')
+		#output('Read from database')
 		send(('DB_READ',self.dbObj,),to=srcId)
 		#output("Sent content from DB (DB READ) to Worker {0}:".format(srcId),reqObject)
