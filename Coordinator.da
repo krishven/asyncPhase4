@@ -36,7 +36,7 @@ class Coordinator(process):
 
 	def getCachedUpdates(obj,req):
 		cache = {}
-		readAttr = defReadAttr(obj,req) + mightReadAttr(obj,req)
+		readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
 		if obj in cachedUpdates:
 			updates = cachedUpdates[obj]
 			for item in updates:
@@ -99,12 +99,6 @@ class Coordinator(process):
 			workerIndex=0
 		return workerList[index]
 
-	def defReadAttr(obj, req):
-		return ['history']
-
-	def mightReadAttr(obj, req):
-		return ['position']
-	
 	def receive(msg=('READ_REQUEST',req), from_=recvProcId):
 		output("Received read req from client")
 		requests[req.id] = copy.deepcopy(req)
@@ -114,11 +108,11 @@ class Coordinator(process):
 		if(order == 1):
 			req.ts = time.time()
 
-		for attr in defReadAttr(obj, req):
+		for attr in common.defReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
 			v.rts = req.ts
 
-		for attr in mightReadAttr(obj, req):
+		for attr in common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
 			v.pendingMightRead.append(req.id)
 
@@ -142,7 +136,7 @@ class Coordinator(process):
 		if(order == 1):
 			req.ts = time.time()
 
-		for attr in defReadAttr(obj, req) + mightReadAttr(obj, req):
+		for attr in common.defReadAttr(obj, req) + common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
 			v.pendingMightRead.append(req.id)
 
@@ -160,7 +154,7 @@ class Coordinator(process):
 	def receive(msg=('RESULT_RDONLY',req), from_=recvProcId):
 		output("Received RESULT_RDONLY from client")
 		obj = common.findObject(req, req.order)
-		for attr in mightReadAttr(obj, req):
+		for attr in common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
 			if req.id in v.pendingMightRead:
 				v.pendingMightRead.remove(req.id)
@@ -191,7 +185,7 @@ class Coordinator(process):
 						versionMap[(obj,item.attr)] = []
 						versionMap[(obj,item.attr)].append(newVersion)
 
-				for attr in defReadAttr(obj,req) + mightReadAttr(obj,req):
+				for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
 					v = latestVersionBefore(obj,attr,req.ts)
 					v.pendingMightRead.remove(req.id)
 					if attr in req.readAttr[req.updatedObj]:

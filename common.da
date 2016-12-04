@@ -4,6 +4,64 @@ import uuid
 configHashMap={}
 objHashMap={}
 requestMap={}
+defReadMap={}
+mightReadMap={}
+
+def setDefRead(subList,resList,defReadVal):
+	defReadList=[]
+
+	valueList=defReadVal.replace("(","")
+	valueList = valueList.split(')')
+	i=0
+	for item in valueList:
+		if(item!=""):
+			#print("h"+subList[i],resList[i])
+			itemList=item.split(",")
+			for subItem in itemList:
+				if(subItem!=""):
+					#print("k:"+subItem+":L")
+					defReadList.append(subItem)
+			
+			defReadMap[(int(subList[i]),int(resList[i]))]=defReadList
+			i+=1
+			defReadList=[]
+
+	# for key, value in defReadMap.items():
+	#   	print(key,value)
+	pass
+
+def defReadAttr(obj,req):
+	value = defReadMap[(req.subId,req.resId)]
+	print(value)
+	return value
+
+def setMightRead(subList,resList,mightReadVal):
+	mightReadList=[]
+
+	valueList=mightReadVal.replace("(","")
+	valueList = valueList.split(')')
+	i=0
+	for item in valueList:
+		if(item!=""):
+			#print("h"+subList[i],resList[i])
+
+			itemList=item.split(",")
+			for subItem in itemList:
+				if(subItem!=""):
+					#print("k:"+subItem+":L")
+					mightReadList.append(subItem)
+			mightReadMap[(int(subList[i]),int(resList[i]))]=mightReadList
+			i+=1
+			mightReadList=[]
+
+	# for key, value in mightReadMap.items():
+	#   	print(key,value)
+	pass
+
+def mightReadAttr(obj,req):
+	value = mightReadMap[(req.subId,req.resId)]
+	print(value)
+	return value
 
 #Function to read config file and store it in HashMap
 def readConfigFile(fileName):
@@ -20,6 +78,9 @@ def readConfigFile(fileName):
 	uniqueIdList = configHashMap['uniqueId'].split(',')
 	waitTimeList = configHashMap['waitTime'].split(",")
 	actionList = configHashMap['action'].split(",")
+
+	setDefRead(subIdList,resIdList,configHashMap['defRead'])
+	setMightRead(subIdList,resIdList,configHashMap['mightRead'])
 
 	configHashMap['subjectId']=subIdList
 	configHashMap['resourceId']=resIdList
