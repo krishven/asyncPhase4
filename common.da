@@ -42,8 +42,6 @@ def findObject(appReq, order):
 	else:
 		return obj2
 
-
-
 #App Request Object Class
 class AppRequest():
 	def __init__(self,subId,resId,action, clientProcId):
@@ -52,9 +50,9 @@ class AppRequest():
 		self.order = None
 		self.type = None
 		self.id = uuid.uuid4().hex
-		self.cachedUpdates = None
+		self.cachedUpdates = {}
 		self.ts = time.time()
-		self.readAttr = None
+		self.readAttr = []
 		self.updateIndex = None
 		self.rdOnlyIndex = None
 		self.action = action

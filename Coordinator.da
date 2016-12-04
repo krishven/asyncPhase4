@@ -34,39 +34,49 @@ class Coordinator(process):
 		output("Hello Im coordinator!!!")
 		await(False)
 
-	def cachedUpdates(obj,req):
+	def getCachedUpdates(obj,req):
 		cache = {}
-		readAttr = defReadAttr(obj,req) union mightReadAttr(obj,req)
-		updates = cachedUpdates[obj]
-		for item in updates:
-			if item.attr in readAttr:
-				cache[item.attr] = item.value
+		readAttr = defReadAttr(obj,req) + mightReadAttr(obj,req)
+		if obj in cachedUpdates:
+			updates = cachedUpdates[obj]
+			for item in updates:
+				if item.attr in readAttr:
+					cache[item.attr] = item.value
 		return cache
 
 	def latestVersionBefore(obj, attr, ts):
-		versionList = versionMap[(obj, attr)]
-		#sort version list based on timestamp
-		sortedVersionList = sorted(versionList, key=lambda x: x.wts, reverse=True)
-		prev = None
-		for v in sortedVersionList:
-			if(v.wts > ts):
-				break
-			prev = v
+		v = None
+		if (obj, attr) in versionMap:
+			versionList = versionMap[(obj, attr)]
+			#sort version list based on timestamp
+			sortedVersionList = sorted(versionList, key=lambda x: x.wts)
+			prev = None
+			for v in sortedVersionList:
+				if(v.wts > ts):
+					break
+				prev = v
+			
+			v = prev
 		
-		v = prev
 		if(not v):
 			v = Version(0, 0)
+			if (obj, attr) in versionMap:
+				versionMap[(obj, attr)].append(v)
+			else:
+				versionMap[(obj, attr)] = []
+				versionMap[(obj, attr)].append(v)
+
 		return v
 
 	def restart(req):
 		originalReq = requests[req.id]
-		obj = findObject(originalReq, 1)
+		obj = common.findObject(originalReq, 1)
 		coordinatorId = findCoordinator(obj)
 		req.order = 1
 		send(('READ_REQUEST',req,),to=coordinatorId)
 
 	def checkForConflicts(req):
-		obj = findObject(req, req.updateIndex)
+		obj = common.findObject(req, req.updateIndex)
 		for item in req.updates:
 			# note: if obj.attr has not been read or written in this session, then
 			# v is the special version with v.rts=0 and v.wts=0.
@@ -88,54 +98,111 @@ class Coordinator(process):
 		if(workerIndex>=numWorkers):
 			workerIndex=0
 		return workerList[index]
+
+	def defReadAttr(obj, req):
+		return ['history']
+
+	def mightReadAttr(obj, req):
+		return ['position']
 	
 	def receive(msg=('READ_REQUEST',req), from_=recvProcId):
-		output("Received read msg from client")
+		output("Received read req from client")
 		requests[req.id] = copy.deepcopy(req)
 		order = req.order
-		obj = findObject(req, order)
+		obj = common.findObject(req, order)
 
 		if(order == 1):
 			req.ts = time.time()
 
 		for attr in defReadAttr(obj, req):
-			latestVersionBefore(obj, attr, req.ts).rts = req.ts
+			v = latestVersionBefore(obj, attr, req.ts)
+			v.rts = req.ts
 
 		for attr in mightReadAttr(obj, req):
-			latestVersionBefore(obj, attr, req.ts).pendingMightRead.append(req.id)
+			v = latestVersionBefore(obj, attr, req.ts)
+			v.pendingMightRead.append(req.id)
 
-		req.cachedUpdates[order] = cachedUpdates(obj,req)
+		req.cachedUpdates[order] = getCachedUpdates(obj,req)
 
 		if(order == 1):
 			obj = common.findObject(req, 2)
 			coordinatorId = findCoordinator(obj)
 			req.order = 2
 			send(('READ_REQUEST',req,),to=coordinatorId)
-		else
+		else:
 			workerId = getWorker()
 			send(('READ_REQUEST',req,),to=workerId)
 
 	def receive(msg=('WRITE_REQUEST',req), from_=recvProcId):
-		output("Received write req msg from client")
-		output("Received read msg from client")
+		output("Received write req from client")
 		requests[req.id] = copy.deepcopy(req)
 		order = req.order
-		obj = findObject(req, order)
+		obj = common.findObject(req, order)
 
 		if(order == 1):
 			req.ts = time.time()
 
 		for attr in defReadAttr(obj, req) + mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
-			v.pendingMightRead.add(req.id)
+			v.pendingMightRead.append(req.id)
 
-		req.cachedUpdates[order] = cachedUpdates(obj,req)
+		req.cachedUpdates[order] = getCachedUpdates(obj,req)
 
 		if(order == 1):
 			obj = common.findObject(req, 2)
 			coordinatorId = findCoordinator(obj)
 			req.order = 2
 			send(('WRITE_REQUEST',req,),to=coordinatorId)
-		else
+		else:
 			workerId = getWorker()
 			send(('WRITE_REQUEST',req,),to=workerId)
+
+	def receive(msg=('RESULT_RDONLY',req), from_=recvProcId):
+		output("Received RESULT_RDONLY from client")
+		obj = common.findObject(req, req.order)
+		for attr in mightReadAttr(obj, req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			if req.id in v.pendingMightRead:
+				v.pendingMightRead.remove(req.id)
+			if attr in req.readAttr[req.order]:
+				v.rts = req.ts
+
+	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
+		obj = common.findObject(req, req.updateIndex)
+		conflict = checkForConflicts(req)
+
+		if not conflict:
+			for item in req.updates:
+				await(not latestVersionBefore(obj,item.attr,req.ts).pendingMightRead or latestVersionBefore(obj,item.attr,req.ts).pendingMightRead.count(req.id) == 1)
+
+			conflict = checkForConflicts(req)
+			if not conflict:
+				for item in req.updates:
+					if obj in cachedUpdates:
+						cachedUpdates[obj].append(item)
+					else:
+						cachedUpdates[obj] = []
+						cachedUpdates[obj].append(item)
+					newVersion = Version(0,0)
+					newVersion.wts = req.ts
+					if (obj, item.attr) in versionMap:
+						versionMap[(obj,item.attr)].append(newVersion)
+					else:
+						versionMap[(obj,item.attr)] = []
+						versionMap[(obj,item.attr)].append(newVersion)
+
+				for attr in defReadAttr(obj,req) + mightReadAttr(obj,req):
+					v = latestVersionBefore(obj,attr,req.ts)
+					v.pendingMightRead.remove(req.id)
+					if attr in req.readAttr[req.updatedObj]:
+						v.rts = req.ts
+
+				send(("RESULT_UPDATE",req,),to=req.clientId)
+				obj = common.findObject(req, req.rdOnlyIndex)
+				coordinatorId = findCoordinator(obj)
+				send(("RESULT_RDONLY",req,),to=coordinatorId)
+			else:
+				restart(req)
+		else:
+			restart(req)
+

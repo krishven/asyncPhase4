@@ -20,12 +20,16 @@ class Worker(process):
 	
 	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
 		
-		req.updateIndex=-1  #testing purpose
+		req.updateIndex =- 1  #testing purpose
 
 		if(req.updateIndex == -1):
 			send(("RESULT_RDONLY",req,),to=req.clientId)
+			subAttr = ['history']
+			resAttr = ['viewCount']
+			req.readAttr.append(subAttr)
+			req.readAttr.append(resAttr)
 			for i in range(0,2):
 				obj = common.findObject(req,i)
 				req.order = i
 				coordinatorId = findCoordinator(obj)
-				send(("RESULT_RDONLY",req,),to=coordinatorId)	
+				send(("RESULT_RDONLY",req,),to=coordinatorId)
