@@ -22,7 +22,7 @@ def setDefRead(subList,resList,defReadVal):
 					#print("k:"+subItem+":L")
 					defReadList.append(subItem)
 			
-			defReadMap[(int(subList[i]),int(resList[i]))]=defReadList
+			defReadMap[(subList[i],resList[i])]=defReadList
 			i+=1
 			defReadList=[]
 
@@ -50,7 +50,7 @@ def setMightRead(subList,resList,mightReadVal):
 				if(subItem!=""):
 					#print("k:"+subItem+":L")
 					mightReadList.append(subItem)
-			mightReadMap[(int(subList[i]),int(resList[i]))]=mightReadList
+			mightReadMap[(subList[i],resList[i])]=mightReadList
 			i+=1
 			mightReadList=[]
 
@@ -124,8 +124,7 @@ class AppRequest():
 		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)
 
 	def __str__(self):
-		return "ReqObject subId:%s, resID:%s action:%s, timestamp:%s, clientId:%s, tentative:%s, result:%s, subRules:%s, resRules:%s" % (self.subId, self.resId,self.action,self.timestamp,self.clientId,
-				self.tentativeUpdate,self.result,self.subRules,self.resRules)
+		return "ReqObject subId:%s, resID:%s action:%s, clientId:%s" % (self.subId, self.resId,self.action,self.clientId)
 		
 
 #Database Object Class

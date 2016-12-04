@@ -16,8 +16,10 @@ class DbEmulator(process):
 	def run():	
 		self.configHashMap = common.readConfigFile(configFile)
 		database = initDB(configHashMap['dbFile'])
+		#print ("sollo:",database['1'])
 		self.dbObj.database = database
 		output("Hello from DB!!!")
+		await(False)
 
 	def initDB(dbFile):
 		#read from database.xml and store in memory cache
@@ -36,4 +38,13 @@ class DbEmulator(process):
 				if attrName != 'id':
 					temp[attrName] = attrValue
 			database[res.attrib['id']] = temp
+
 		return database
+
+	def receive(msg=('DB_READ',reqObject,), from_=srcId):
+		#DB Read request
+		output("Received content in DB (DB READ) from Worker")
+		self.dbObj.reqObject = reqObject
+		output('Read from database')
+		send(('DB_READ',self.dbObj,),to=srcId)
+		#output("Sent content from DB (DB READ) to Worker {0}:".format(srcId),reqObject)

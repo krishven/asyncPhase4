@@ -7,7 +7,7 @@ class Client(process):
 
 	def findCoordinator(obj):
 		numCoordinators = int(configHashMap['numCoordinators'])
-		index = obj%numCoordinators
+		index = int(obj)%numCoordinators
 		return coIdMap[index]
 
 	def run():
@@ -20,7 +20,7 @@ class Client(process):
 		numClients = int(configHashMap['numClients'])
 		i=clientId[self.id]%numClients
 		while (i<len(subIdList)):
-			appReq = common.AppRequest(int(subIdList[i]),int(resIdList[i]),actionList[i],self.id)
+			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)
 			appReq.order = 1

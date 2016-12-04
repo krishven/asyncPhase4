@@ -87,7 +87,7 @@ class Coordinator(process):
 
 	def findCoordinator(obj):
 		numCoordinators = int(configHashMap['numCoordinators'])
-		index = obj%numCoordinators
+		index = int(obj)%numCoordinators
 		return coIdMap[index]
 	
 	def getWorker():

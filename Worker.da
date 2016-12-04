@@ -4,6 +4,7 @@ dbEmulator = import_da('DbEmulator')
 
 import xml.etree.ElementTree as ET
 import time
+import logging
 
 database = {}
 
@@ -18,7 +19,7 @@ class Worker(process):
 
 	def findCoordinator(obj):
 		numCoordinators = int(configHashMap['numCoordinators'])
-		index = obj%numCoordinators
+		index = int(obj)%numCoordinators
 		return coIdMap[index]
 
 	def checkValue(db, attrValue, sid, rid):
@@ -224,13 +225,23 @@ class Worker(process):
 	
 	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
 		
+		output("hello")
 		req.updateIndex = -1  #testing purpose
 
-		database = initDB('database.xml')
+		send(('DB_READ',req,),to=dbId)
+		output("Sent content from Worker (DB READ) to DB:")
+
+
+	def receive(msg=('DB_READ',dbObj,), from_=subCoId):
+		req=dbObj.reqObject
+		database=dbObj.database
+		req.updateIndex = -1 
+		output("Received content in Worker (DB READ) from DB:",req)
+		
 		req.updates = evaluatePolicyRequest(database, req)
 
 		if(req.updateIndex == -1):
-			#send(("RESULT_RDONLY",req,),to=req.clientId)
+			send(("RESULT_RDONLY",req,),to=req.clientId)
 			for i in range(1,3):
 				obj = common.findObject(req,i)
 				req.order = i
