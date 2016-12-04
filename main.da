@@ -26,26 +26,26 @@ def main():
     totalWorkers = 1
 
     coProcIds = new(coordinator.Coordinator, num = int(numCoordinators))
-    clientProcIds = new(client.Client, num=int(configHashMap['numClients']))
-    workerProcIds = new(worker.Worker, num=totalWorkers)
-    dbEmulatorId = new(dbEmulator.DbEmulator,num=1)
+    clientProcIds = new(client.Client, num = int(configHashMap['numClients']))
+    workerProcIds = new(worker.Worker, num = totalWorkers)
+    dbEmulatorId = new(dbEmulator.DbEmulator,num = 1)
 
  #   setup(subCoProcIds
     i=0
 
     for procId in coProcIds:
-        coProcessHashMap[i]=procId           
+        coProcessHashMap[i]= procId           
         i+=1
 
     i=0
     for procId in workerProcIds:
-        workerProcHashMap[i] =procId
+        workerProcHashMap[i] = procId
         i+=1   
 
 
     i=0
     for procId in clientProcIds:
-        cliProcessHashMap[procId]=i
+        cliProcessHashMap[procId] = i
         i+=1   
 
     setup(coProcIds,(sys.argv[1],coProcessHashMap,dbEmulatorId,))

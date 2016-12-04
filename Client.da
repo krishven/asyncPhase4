@@ -22,10 +22,12 @@ class Client(process):
 			appReq = common.AppRequest(int(subIdList[i]),int(resIdList[i]),actionList[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)
-			appReq.order=1
+			appReq.order = 1
 			if(appReq.action == "update"):
+				appReq.type = 'WRITE_REQUEST'
 				send(('WRITE_REQUEST',appReq,),to=coordinatorId)
 			else:
+				appReq.type = 'READ_REQUEST'
 				send(('READ_REQUEST',appReq,),to=coordinatorId)
 			await(self.resumeFlag)
 			self.resumeFlag=False
