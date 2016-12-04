@@ -6,6 +6,7 @@ import pprint
 import xml.etree.ElementTree as ET
 import logging
 import collections
+import copy
 
 database={}
 
@@ -53,8 +54,8 @@ class DbEmulator(process):
 		self.dbObj.database = database[tsReq]			
 		self.dbObj.reqObject = reqObject
 		output('Read from database')
-		pp = pprint.PrettyPrinter(indent=4)
-		pp.pprint(self.dbObj.database)
+		#pp = pprint.PrettyPrinter(indent=4)
+		#pp.pprint(self.dbObj.database)
 
 		send(('DB_READ',self.dbObj,),to=srcId)
 		#output("Sent content from DB (DB READ) to Worker {0}:".format(srcId),reqObject)
