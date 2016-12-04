@@ -1,5 +1,4 @@
 common = import_da('common')
-common = import_da('Client')
 dbEmulator = import_da('DbEmulator')
 import logging
 
@@ -25,8 +24,9 @@ class Version():
 		self.pendingMightRead = []
 
 class Coordinator(process):
-	def setup(configFile:str,coIdMap:dict,dbId:dbEmulator.DbEmulator):
+	def setup(configFile:str,coIdMap:dict,workerResCoMap:dict,dbId:dbEmulator.DbEmulator):
 		self.configHashMap={}
+		self.workerIndex=0
 
 	def run():
 		#output("hello SubCo!")
@@ -74,6 +74,20 @@ class Coordinator(process):
 			if v.rts > req.ts:
 				return True
 		return False
+
+	def findCoordinator(obj):
+		numCoordinators = int(configHashMap['numCoordinators'])
+		index = obj%numCoordinators
+		return coIdMap[index]
+	
+	def getWorker():
+		numWorkers = int(configHashMap['numWorkers'])
+		workerList = workerResCoMap[self.id]
+		index = self.workerIndex % numWorkers
+		self.workerIndex+=1
+		if(workerIndex>=numWorkers):
+			workerIndex=0
+		return workerList[index]
 	
 	def receive(msg=('READ_REQUEST',req), from_=recvProcId):
 		output("Received read msg from client")
@@ -93,12 +107,12 @@ class Coordinator(process):
 		req.cachedUpdates[order] = cachedUpdates(obj,req)
 
 		if(order == 1):
-			obj = findObject(req, 2)
+			obj = common.findObject(req, 2)
 			coordinatorId = findCoordinator(obj)
 			req.order = 2
 			send(('READ_REQUEST',req,),to=coordinatorId)
 		else
-			workerId = getWorker(obj)
+			workerId = getWorker()
 			send(('READ_REQUEST',req,),to=workerId)
 
 	def receive(msg=('WRITE_REQUEST',req), from_=recvProcId):
@@ -118,10 +132,10 @@ class Coordinator(process):
 		req.cachedUpdates[order] = cachedUpdates(obj,req)
 
 		if(order == 1):
-			obj = findObject(req, 2)
+			obj = common.findObject(req, 2)
 			coordinatorId = findCoordinator(obj)
 			req.order = 2
 			send(('WRITE_REQUEST',req,),to=coordinatorId)
 		else
-			workerId = getWorker(obj)
+			workerId = getWorker()
 			send(('WRITE_REQUEST',req,),to=workerId)
