@@ -12,17 +12,12 @@ requests = {}
 versionMap = {}
 cachedUpdates = {}
 recentUpdates = {}
-
-#possible status of tentative updates
-ongoing = 1
-success = 2
-failure = 3
-delayQueueList=[]
+delayQueueList = []
 
 class DelayQueue():
 	def __init__(self,req,id):
-		self.req=req
-		self.reqId=id	
+		self.req = req
+		self.reqId = id	
 
 class Version():
 	def __init__(self,rts,wts):
