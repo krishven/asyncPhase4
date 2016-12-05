@@ -209,6 +209,7 @@ class Coordinator(process):
 					cache = {}
 					cache[result['attrName']] = result['attrValue']
 					cachedUpdates[obj] = cache
+
 				newVersion = Version(0,0)
 				newVersion.wts = req.ts
 				if (obj, result['attrName']) in versionMap:
@@ -223,3 +224,8 @@ class Coordinator(process):
 				restart(req)
 		else:
 			restart(req)
+
+	def receive(msg=('DB_WRITE',req), from_=recvProcId):
+		obj = common.findObject(req,req.updateIndex)
+		cache = cachedUpdates[obj]
+		del cache[req.updates['attrName']]
