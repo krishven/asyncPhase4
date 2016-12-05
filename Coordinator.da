@@ -12,24 +12,21 @@ requests = {}
 versionMap = {}
 cachedUpdates = {}
 recentUpdates = {}
-delayQueueList = []
+delayQueueMap = {}
 
-class DelayQueue():
-	def __init__(self,req,id):
-		self.req = req
-		self.reqId = id	
 
 class Version():
 	def __init__(self,rts,wts):
 		self.rts = rts
 		self.wts = wts
 		self.pendingMightRead = []
+		self.pendingMightWrite = []
 
 	def __repr__(self):
-		return "<Version rts:%s wts:%s>" % (self.rts, self.wts)
+		return "<Version rts:%s wts:%s pmr:%s pmw:%s>" % (self.rts, self.wts, self.pendingMightRead,self.pendingMightWrite)
 
 	def __str__(self):
-		return "Version rts:%s, wts:%s pmr:%s" % (self.rts, self.wts, self.pendingMightRead)
+		return "Version rts:%s, wts:%s pmr:%s pmw:%s" % (self.rts, self.wts, self.pendingMightRead,self.pendingMightWrite)
 
 class Coordinator(process):
 	def setup(configFile:str,coIdMap:dict,workerResCoMap:dict,dbId:dbEmulator.DbEmulator):
@@ -58,9 +55,10 @@ class Coordinator(process):
 			versionList = versionMap[(obj, attr)]
 			#sort version list based on timestamp
 			sortedVersionList = sorted(versionList, key=lambda x: x.wts)
+			#output("vlist",sortedVersionList)
 			prev = None
 			for v in sortedVersionList:
-				if(v.wts > ts):
+				if(v.wts >= ts):
 					break
 				prev = v
 			
@@ -113,13 +111,28 @@ class Coordinator(process):
 	def cleanUp(obj, req):
 		result = req.updates
 		#print('Read Attr',req.readAttr[req.updateIndex - 1])
+
+		#output("check pnding write")
+		for attr in common.mightWriteAttr(req):
+			#output("attr",attr)
+			v = latestVersionBefore(obj, attr, req.ts)
+			#output("versionmap",versionMap)
+			if req.id in v.pendingMightWrite:
+				#print ("Id in pending write")
+				v.pendingMightWrite.remove(req.id)
+				#print("delay q map:",delayQueueMap)
+				if req.id in delayQueueMap:
+					newReq = delayQueueMap[req.id]
+					restart(newReq)
+
 		for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
 			v = latestVersionBefore(obj,attr,req.ts)
 			if req.id in v.pendingMightRead:
 				v.pendingMightRead.remove(req.id)
 			if result['value'] and attr in req.readAttr[req.updateIndex - 1]:
 				v.rts = req.ts
-				#print('Cleanup',v.rts,req.ts)
+				#print('Cleanup',v.rts,req.ts)	
+
 
 		send(("RESULT_UPDATE",req,),to=req.clientId)
 		obj = common.findObject(req, req.rdOnlyIndex)
@@ -135,25 +148,16 @@ class Coordinator(process):
 		isPresent=False
 
 		if(order == 1):
-			# To prevent starvation of write requests
-			print("ckppint1")
 			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
-			for entry in recentUpdates:
-				#print("reqid",enr)
-				attr = recentUpdates[entry]
-				print("attr",attr,readAttr)
+			for attr in readAttr:
+				pmw = latestVersionBefore(obj,attr,req.ts).pendingMightWrite
+
 				#print (attrList,readAttr)
-				if(attr in readAttr):
-					isPresent=True
-					break
-
-			if(isPresent):
-				output("A write request is starving. Try after that!!!")
-				params = DelayQueue(req,entry)
-				delayQueueList.append(params)
-				return	
-
-			req.ts = time.time()
+				if(len(pmw)>0):
+					output("A write request is starving. Try after that!!!")
+					delayQueueMap[pmw[0]]=req
+					return	
+			req.ts = time.time()		
 
 		for attr in common.defReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
@@ -181,7 +185,17 @@ class Coordinator(process):
 		obj = common.findObject(req, order)
 
 		if(order == 1):
+			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
+
+			for attr in readAttr:
+				pmw = latestVersionBefore(obj,attr,req.ts).pendingMightWrite
+				#print (attrList,readAttr)
+				if(len(pmw)>0):
+					output("A write request is starving. Try after that!!!")
+					delayQueueMap[pmw[0]]=req
+					return	
 			req.ts = time.time()
+
 			#print('TS',req.ts)
 		
 		#print('Object',obj,'TS',req.ts)
@@ -189,6 +203,12 @@ class Coordinator(process):
 		for attr in common.defReadAttr(obj, req) + common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
 			v.pendingMightRead.append(req.id)
+
+		for attr in common.mightWriteAttr(req):
+			v=latestVersionBefore(obj,attr,req.ts)
+			output("pending:",attr)
+			v.pendingMightWrite.append(req.id)	
+			#output("V:",versionMap)
 
 		req.cachedUpdates[order] = getCachedUpdates(obj,req)
 
@@ -212,6 +232,17 @@ class Coordinator(process):
 			if result['value'] and attr in req.readAttr[req.order - 1]:
 				v.rts = req.ts
 
+		for attr in common.mightWriteAttr(req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			if req.id in v.pendingMightWrite:
+				v.pendingMightWrite.remove(req.id)
+				if req.id in delayQueueMap:
+					newReq = delayQueueMap[req.id]
+					restart(newReq)
+
+
+	
+
 	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
 		output("Received RESULT_UPDATE from Worker")
 		obj = common.findObject(req, req.updateIndex)
@@ -227,8 +258,6 @@ class Coordinator(process):
 		time.sleep(req.waitTime)
 
 		if not conflict:			
-			attrList=[]	
-			recentUpdates[req.id]=req.updates['attrName']
 
 			pmr = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead
 			count = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead.count(req.id)
@@ -267,15 +296,6 @@ class Coordinator(process):
 			else:
 				restart(req)
 
-			if req.id in recentUpdates:	
-				del recentUpdates[req.id]
-			for entry in delayQueueList:
-				if(entry.reqId == req.id):
-					obj = common.findObject(req,1)
-					coordinatorId=findCoordinator(obj)
-					output("Send read request again")
-					send(('READ_REQUEST',entry.req,),to=coordinatorId)
-	
 		else:
 			restart(req)
 
