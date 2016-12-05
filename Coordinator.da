@@ -79,6 +79,7 @@ class Coordinator(process):
 		obj = common.findObject(originalReq, 1)
 		coordinatorId = findCoordinator(obj)
 		req.order = 1
+		output('Restart!')
 		send(('READ_REQUEST',req,),to=coordinatorId)
 
 	def checkForConflicts(req):
@@ -88,6 +89,7 @@ class Coordinator(process):
 		# v is the special version with v.rts=0 and v.wts=0.
 		v = latestVersionBefore(obj, item['attrName'], req.ts)
 		if v.rts > req.ts:
+			output('Conflict!')
 			return True
 		return False
 
@@ -156,6 +158,7 @@ class Coordinator(process):
 
 		if(order == 1):
 			req.ts = time.time()
+			print('Object',obj,'TS',req.ts)
 
 		for attr in common.defReadAttr(obj, req) + common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
@@ -186,20 +189,20 @@ class Coordinator(process):
 	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
 		output("Received RESULT_UPDATE from Worker")
 		obj = common.findObject(req, req.updateIndex)
-		conflict = checkForConflicts(req)
 
 		result = req.updates
 		if(result['update'] == False):
 			cleanUp(obj, req)
 			return
 
+		conflict = checkForConflicts(req)
+
 		if not conflict:
-			await(not latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead or latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead.count(req.id) == 1)
+			await(len(latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead) <= 1)
 
 			conflict = checkForConflicts(req)
 
 			if not conflict:
-
 				send(('DB_WRITE',req,),to=dbId)
 
 				if obj in cachedUpdates:
@@ -212,6 +215,7 @@ class Coordinator(process):
 
 				newVersion = Version(0,0)
 				newVersion.wts = req.ts
+				
 				if (obj, result['attrName']) in versionMap:
 					versionMap[(obj,result['attrName'])].append(newVersion)
 				else:
