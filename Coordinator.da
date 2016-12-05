@@ -23,6 +23,12 @@ class Version():
 		self.wts = wts
 		self.pendingMightRead = []
 
+	def __repr__(self):
+		return "<Version rts:%s wts:%s>" % (self.rts, self.wts)
+
+	def __str__(self):
+		return "Version rts:%s, wts:%s pmr:%s" % (self.rts, self.wts, self.pendingMightRead)
+
 class Coordinator(process):
 	def setup(configFile:str,coIdMap:dict,workerResCoMap:dict,dbId:dbEmulator.DbEmulator):
 		self.configHashMap={}
@@ -40,9 +46,8 @@ class Coordinator(process):
 		if obj in cachedUpdates:
 			updates = cachedUpdates[obj]
 			for item in updates:
-				if item['attrName'] in readAttr:
-					cache['attrName'] = item['attrName']
-					cache['attrValue'] = item['attrValue']
+				if item in readAttr:
+					cache[item] = updates[item]
 		return cache
 
 	def latestVersionBefore(obj, attr, ts):
@@ -108,6 +113,7 @@ class Coordinator(process):
 				v.pendingMightRead.remove(req.id)
 			if result['value'] and attr in req.readAttr[req.updateIndex - 1]:
 				v.rts = req.ts
+				print(v)
 
 		send(("RESULT_UPDATE",req,),to=req.clientId)
 		obj = common.findObject(req, req.rdOnlyIndex)
@@ -196,21 +202,20 @@ class Coordinator(process):
 
 				send(('DB_WRITE',req,),to=dbId)
 
-				update = {}
-				update['attrName'] = result['attrName']
-				update['attrValue'] = result['attrValue']
 				if obj in cachedUpdates:
-					cachedUpdates[obj].append(update)
+					cache = cachedUpdates[obj]
+					cache[result['attrName']] = result['attrValue']
 				else:
-					cachedUpdates[obj] = []
-					cachedUpdates[obj].append(update)
+					cache = {}
+					cache[result['attrName']] = result['attrValue']
+					cachedUpdates[obj] = cache
 				newVersion = Version(0,0)
 				newVersion.wts = req.ts
-				if (obj, update['attrName']) in versionMap:
-					versionMap[(obj,update['attrName'])].append(newVersion)
+				if (obj, result['attrName']) in versionMap:
+					versionMap[(obj,result['attrName'])].append(newVersion)
 				else:
-					versionMap[(obj,update['attrName'])] = []
-					versionMap[(obj,update['attrName'])].append(newVersion)
+					versionMap[(obj,result['attrName'])] = []
+					versionMap[(obj,result['attrName'])].append(newVersion)
 
 				cleanUp(obj, req)
 				print(cachedUpdates)

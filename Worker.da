@@ -50,8 +50,6 @@ class Worker(process):
 
 	def checkCondition(attrName, attrValue, temp, cond, isTentative):
 		#evaluate > or < in condition
-		if isTentative:
-			attrName = 'attrValue'
 
 		if "<" not in attrValue and ">" not in attrValue:
 			cond = cond and temp[attrName] == attrValue
