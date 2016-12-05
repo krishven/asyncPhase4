@@ -4,19 +4,22 @@
   <subject name="user A" id="1" position="employee" history="empty">
   </subject>
 
-  <resource name="bank A" id="2" type="bank" viewCount="0">
-  </resource>
-
-  <subject name="user B" id="3" position="employee" history="bank B">
+  <subject name="user B" id="2" position="employee" history="bank A">
   </subject>
 
-  <resource name="bank B" id="4" type="bank" viewCount="0">
-  </resource>
-
-  <subject name="user C" id="5" position="customer" history="empty">
+  <subject name="user C" id="3" position="employee" history="bank B">
   </subject>
 
-  <resource name="Avengers" id="6" type="movie" viewCount="0">
+  <subject name="user D" id="4" position="customer" history="empty">
+  </subject>
+
+  <resource name="bank A" id="5" type="bank" viewCount="0">
+  </resource>
+
+  <resource name="bank B" id="6" type="bank" viewCount="0">
+  </resource>
+
+  <resource name="Avengers" id="7" type="movie" viewCount="0">
   </resource>
 
 </database>
