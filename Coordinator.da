@@ -149,6 +149,7 @@ class Coordinator(process):
 					break
 
 			if(isPresent):
+				output("A write request is starving. Try after that!!!")
 				params = DelayQueue(req,entry)
 				delayQueueList.append(params)
 				return	
