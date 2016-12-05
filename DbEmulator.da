@@ -86,4 +86,4 @@ class DbEmulator(process):
 		pp = pprint.PrettyPrinter(indent=4)
 		pp.pprint(database[reqObject.ts])
 		output("Database:",latestDb,level=logging.DEBUG)
-		send(('DB_WRITE',req),to=srcId)
+		send(('DB_WRITE',reqObject),to=srcId)
