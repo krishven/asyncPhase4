@@ -141,11 +141,15 @@ class Coordinator(process):
 
 		if(order == 1):
 			# To prevent starvation of write requests
+			print("ckppint1")
 			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
 			for entry in recentUpdates:
-				attrList = recentUpdates[entry]
-				isPresent = set(readAttr).intersection(attrList)
-				if(isPresent):
+				#print("reqid",enr)
+				attr = recentUpdates[entry]
+				print("attr",attr,readAttr)
+				#print (attrList,readAttr)
+				if(attr in readAttr):
+					isPresent=True
 					break
 
 			if(isPresent):
@@ -224,17 +228,20 @@ class Coordinator(process):
 
 		conflict = checkForConflicts(req)
 
+
+		time.sleep(req.waitTime)
+
 		if not conflict:			
+			attrList=[]	
+			recentUpdates[req.id]=req.updates['attrName']
+
 			pmr = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead
 			count = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead.count(req.id)
 			#print('Await',pmr,count)
 			await(len(pmr) == 0 or (len(pmr) == 1 and count == 1))
 
 			conflict = checkForConflicts(req)
-			attrList=[]
-			for attr in req.updates:
-				recentUpdates[req.id]=attrList.append(attr)
-
+				
 			if not conflict:
 				send(('DB_WRITE',req,),to=dbId)
 
@@ -261,16 +268,19 @@ class Coordinator(process):
 				cleanUp(obj, req)
 				
 				#print(cachedUpdates)
-				
-				del recentUpdates[req.id]
-				for entry in delayQueueList:
-					if(entry.reqId == req.id):
-						obj = findObject(req,1)
-						coordinatorId=findCoordinator(obj)
-						send(('READ_REQUEST',req,),to=coordinatorId)
-
+	
 			else:
 				restart(req)
+
+			if req.id in recentUpdates:	
+				del recentUpdates[req.id]
+			for entry in delayQueueList:
+				if(entry.reqId == req.id):
+					obj = common.findObject(req,1)
+					coordinatorId=findCoordinator(obj)
+					output("Send read request again")
+					send(('READ_REQUEST',entry.req,),to=coordinatorId)
+	
 		else:
 			restart(req)
 

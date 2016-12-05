@@ -1,5 +1,5 @@
 common = import_da('common')
-
+import time
 class Client(process):
 	def setup(configFile:str,coIdMap:dict,clientId:dict): 
 		self.resumeFlag = False 
@@ -18,9 +18,14 @@ class Client(process):
 		resIdList = configHashMap['resourceId']
 		actionList = configHashMap['action']
 		numClients = int(configHashMap['numClients'])
+		cliWaitTime = configHashMap['cliWaitTime']
+		coWaitTime = configHashMap['coWaitTime']
+
 		i=clientId[self.id]%numClients
 		while (i<len(subIdList)):
-			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],self.id)
+			time.sleep(int(cliWaitTime[i]))
+			print("Request send")
+			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)
 			appReq.order = 1
