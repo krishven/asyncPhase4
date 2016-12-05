@@ -11,11 +11,18 @@ import pprint
 requests = {}
 versionMap = {}
 cachedUpdates = {}
+recentUpdates = {}
 
 #possible status of tentative updates
 ongoing = 1
 success = 2
 failure = 3
+delayQueueList=[]
+
+class DelayQueue():
+	def __init__(self,req,id):
+		self.req=req
+		self.reqId=id	
 
 class Version():
 	def __init__(self,rts,wts):
@@ -129,6 +136,19 @@ class Coordinator(process):
 		obj = common.findObject(req, order)
 
 		if(order == 1):
+			# To prevent starvation of write requests
+			readAttr = defReadAttr(obj,req) + mightReadAttr(obj,req)
+			for entry in recentUpdates:
+				attrList = recentUpdates[entry]
+				isPresent = set(readAttr).intersection(attrList)
+				if(isPresent):
+					break
+
+			if(isPresent):
+				params = DelayQueue(req,entry)
+				delayQueueList.append(params)
+				return	
+
 			req.ts = time.time()
 
 		for attr in common.defReadAttr(obj, req):
@@ -201,6 +221,9 @@ class Coordinator(process):
 			await(len(latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead) <= 1)
 
 			conflict = checkForConflicts(req)
+			attrList=[]
+			for attr in req.updates:
+				recentUpdates[req.id]=attrList.append(attr)
 
 			if not conflict:
 				send(('DB_WRITE',req,),to=dbId)
@@ -224,6 +247,14 @@ class Coordinator(process):
 
 				cleanUp(obj, req)
 				print(cachedUpdates)
+				
+				del recentUpdates[req.id]
+				for entry in delayQueueList:
+					if(entry.reqId == req.id):
+						obj = findObject(req,1)
+						coordinatorId=findCoordinator(obj)
+						send(('READ_REQUEST',req,),to=coordinatorId)
+
 			else:
 				restart(req)
 		else:
