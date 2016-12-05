@@ -225,7 +225,7 @@ class Worker(process):
 		
 		req.updates = evaluatePolicyRequest(database, req)
 
-		print(req.updates)
+		#print(req.updates)
 
 		if(req.updateIndex == -1):
 			send(("RESULT_RDONLY",req,),to=req.clientId)
@@ -235,6 +235,7 @@ class Worker(process):
 				coordinatorId = findCoordinator(obj)
 				send(("RESULT_RDONLY",req,),to=coordinatorId)
 		else:
+			time.sleep(1)
 			obj = common.findObject(req, req.updateIndex)
 			coordinatorId = findCoordinator(obj)
 			req.rdOnlyIndex = 3 - req.updateIndex

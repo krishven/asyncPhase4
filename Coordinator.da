@@ -88,6 +88,7 @@ class Coordinator(process):
 		# note: if obj.attr has not been read or written in this session, then
 		# v is the special version with v.rts=0 and v.wts=0.
 		v = latestVersionBefore(obj, item['attrName'], req.ts)
+		print('Check',v.rts,req.ts)
 		if v.rts > req.ts:
 			output('Conflict!')
 			return True
@@ -109,16 +110,18 @@ class Coordinator(process):
 
 	def cleanUp(obj, req):
 		result = req.updates
+		print('Read Attr',req.readAttr[req.updateIndex - 1])
 		for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
 			v = latestVersionBefore(obj,attr,req.ts)
 			if req.id in v.pendingMightRead:
 				v.pendingMightRead.remove(req.id)
 			if result['value'] and attr in req.readAttr[req.updateIndex - 1]:
 				v.rts = req.ts
-				print(v)
+				#print('Cleanup',v.rts,req.ts)
 
 		send(("RESULT_UPDATE",req,),to=req.clientId)
 		obj = common.findObject(req, req.rdOnlyIndex)
+		req.order = req.rdOnlyIndex
 		coordinatorId = findCoordinator(obj)
 		send(("RESULT_RDONLY",req,),to=coordinatorId)
 
@@ -158,7 +161,9 @@ class Coordinator(process):
 
 		if(order == 1):
 			req.ts = time.time()
-			print('Object',obj,'TS',req.ts)
+			print('TS',req.ts)
+		
+		#print('Object',obj,'TS',req.ts)
 
 		for attr in common.defReadAttr(obj, req) + common.mightReadAttr(obj, req):
 			v = latestVersionBefore(obj, attr, req.ts)
@@ -198,7 +203,10 @@ class Coordinator(process):
 		conflict = checkForConflicts(req)
 
 		if not conflict:
-			await(len(latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead) <= 1)
+			pmr = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead
+			count = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead.count(req.id)
+			#print('Await',pmr,count)
+			await(len(pmr) == 0 or (len(pmr) == 1 and count == 1))
 
 			conflict = checkForConflicts(req)
 
@@ -215,6 +223,7 @@ class Coordinator(process):
 
 				newVersion = Version(0,0)
 				newVersion.wts = req.ts
+				#print('Updated',newVersion.wts)
 				
 				if (obj, result['attrName']) in versionMap:
 					versionMap[(obj,result['attrName'])].append(newVersion)
@@ -222,8 +231,10 @@ class Coordinator(process):
 					versionMap[(obj,result['attrName'])] = []
 					versionMap[(obj,result['attrName'])].append(newVersion)
 
+				print(versionMap)
+
 				cleanUp(obj, req)
-				print(cachedUpdates)
+				#print(cachedUpdates)
 			else:
 				restart(req)
 		else:
@@ -232,4 +243,5 @@ class Coordinator(process):
 	def receive(msg=('DB_WRITE',req), from_=recvProcId):
 		obj = common.findObject(req,req.updateIndex)
 		cache = cachedUpdates[obj]
-		del cache[req.updates['attrName']]
+		if req.updates['attrName'] in cache:
+			del cache[req.updates['attrName']]
