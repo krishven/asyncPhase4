@@ -20,16 +20,17 @@ class Client(process):
 		numClients = int(configHashMap['numClients'])
 		cliWaitTime = configHashMap['cliWaitTime']
 		coWaitTime = configHashMap['coWaitTime']
+		mightWrite = configHashMap['mightWrite']
 
 		i=clientId[self.id]%numClients
 		while (i<len(subIdList)):
 			time.sleep(int(cliWaitTime[i]))
 			print("Request send")
-			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],self.id)
+			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],mightWrite[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)
 			appReq.order = 1
-			if(appReq.action == "update"):
+			if(appReq.mightWrite!=0):
 				appReq.type = 'WRITE_REQUEST'
 				send(('WRITE_REQUEST',appReq,),to=coordinatorId)
 			else:
