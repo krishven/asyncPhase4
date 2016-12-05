@@ -76,7 +76,8 @@ def readConfigFile(fileName):
 	subIdList = configHashMap['subjectId'].split(',')	
 	resIdList = configHashMap['resourceId'].split(',')
 	uniqueIdList = configHashMap['uniqueId'].split(',')
-	waitTimeList = configHashMap['waitTime'].split(",")
+	cliWaitTimeList = configHashMap['cliWaitTime'].split(",")
+	coWaitTimeList = configHashMap['coWaitTime'].split(",")
 	actionList = configHashMap['action'].split(",")
 
 	setDefRead(subIdList,resIdList,configHashMap['defRead'])
@@ -85,7 +86,8 @@ def readConfigFile(fileName):
 	configHashMap['subjectId']=subIdList
 	configHashMap['resourceId']=resIdList
 	configHashMap['uniqueId']=uniqueIdList
-	configHashMap['waitTime']=waitTimeList
+	configHashMap['cliWaitTime']=cliWaitTimeList
+	configHashMap['coWaitTime']=coWaitTimeList
 	configHashMap['action']=actionList
 	return configHashMap
 
@@ -105,7 +107,7 @@ def findObject(appReq, order):
 
 #App Request Object Class
 class AppRequest():
-	def __init__(self,subId,resId,action, clientProcId):
+	def __init__(self,subId,resId,action, waitTime,clientProcId):
 		self.subId = subId
 		self.resId = resId
 		self.order = None
@@ -119,6 +121,7 @@ class AppRequest():
 		self.action = action
 		self.clientId = clientProcId
 		self.updates = None
+		self.waitTime=int(waitTime)
 
 	def __repr__(self):
 		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)
