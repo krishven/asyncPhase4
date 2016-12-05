@@ -13,6 +13,7 @@ versionMap = {}
 cachedUpdates = {}
 recentUpdates = {}
 delayQueueList = []
+writeAttr = {}
 
 class DelayQueue():
 	def __init__(self,req,id):
@@ -132,11 +133,10 @@ class Coordinator(process):
 		requests[req.id] = copy.deepcopy(req)
 		order = req.order
 		obj = common.findObject(req, order)
-		isPresent=False
 
 		if(order == 1):
 			# To prevent starvation of write requests
-			print("ckppint1")
+			#print("ckppint1")
 			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
 			for entry in recentUpdates:
 				#print("reqid",enr)
@@ -144,14 +144,10 @@ class Coordinator(process):
 				print("attr",attr,readAttr)
 				#print (attrList,readAttr)
 				if(attr in readAttr):
-					isPresent=True
-					break
-
-			if(isPresent):
-				output("A write request is starving. Try after that!!!")
-				params = DelayQueue(req,entry)
-				delayQueueList.append(params)
-				return	
+					output("A write request is starving. Try after that!!!")
+					params = DelayQueue(req,entry)
+					delayQueueList.append(params)
+					return
 
 			req.ts = time.time()
 
@@ -181,6 +177,18 @@ class Coordinator(process):
 		obj = common.findObject(req, order)
 
 		if(order == 1):
+			#to prevent 2 write requests from going at the same time
+			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
+			for key in writeAttr:
+				item = writeAttr[key]
+				for attr in readAttr:
+					if attr in item:
+						output("A write request is ongoing")
+						params = DelayQueue(req,key)
+						delayQueueList.append(params)
+						return
+
+			writeAttr[req.id] = readAttr
 			req.ts = time.time()
 			#print('TS',req.ts)
 		
