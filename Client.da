@@ -34,10 +34,10 @@ class Client(process):
 			self.resumeFlag=False
 			i+=numClients
 
-	def receive(msg =("RESULT_RDONLY",reqObject,), from_ = subCoId):
-		output("RESULT_RDONLY recvd")
+	def receive(msg =("RESULT_RDONLY",req,), from_ = subCoId):
+		output("RDONLY - RESULT:",req.updates['value'])
 		self.resumeFlag = True
 
-	def receive(msg =("RESULT_UPDATE",reqObject,), from_ = subCoId):
-		output("RESULT_UPDATE recvd")
+	def receive(msg =("RESULT_UPDATE",req,), from_ = subCoId):
+		output("UPDATE - RESULT:",req.updates['value'])
 		self.resumeFlag = True
