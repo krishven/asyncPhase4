@@ -95,7 +95,7 @@ class Coordinator(process):
 		# note: if obj.attr has not been read or written in this session, then
 		# v is the special version with v.rts=0 and v.wts=0.
 		v = latestVersionBefore(obj, item['attrName'], req.ts)
-		print('Check',v.rts,req.ts)
+		#print('Check',v.rts,req.ts)
 		if v.rts > req.ts:
 			output('Conflict!')
 			return True
@@ -117,7 +117,7 @@ class Coordinator(process):
 
 	def cleanUp(obj, req):
 		result = req.updates
-		print('Read Attr',req.readAttr[req.updateIndex - 1])
+		#print('Read Attr',req.readAttr[req.updateIndex - 1])
 		for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
 			v = latestVersionBefore(obj,attr,req.ts)
 			if req.id in v.pendingMightRead:
@@ -183,7 +183,7 @@ class Coordinator(process):
 
 		if(order == 1):
 			req.ts = time.time()
-			print('TS',req.ts)
+			#print('TS',req.ts)
 		
 		#print('Object',obj,'TS',req.ts)
 
@@ -256,7 +256,7 @@ class Coordinator(process):
 					versionMap[(obj,result['attrName'])] = []
 					versionMap[(obj,result['attrName'])].append(newVersion)
 
-				print(versionMap)
+				#print(versionMap)
 
 				cleanUp(obj, req)
 				

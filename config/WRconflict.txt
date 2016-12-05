@@ -1,0 +1,12 @@
+numCoordinators=6
+numClients=2
+subjectId=4,4
+resourceId=7,7
+uniqueId=1,1
+waitTime=1,1
+action=update,read
+defRead=(position,viewCount),(position,viewCount)
+mightRead=(type),(type)
+numWorkers=1
+dbFile=database.xml
+random=0
