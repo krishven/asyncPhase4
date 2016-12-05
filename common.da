@@ -79,6 +79,7 @@ def readConfigFile(fileName):
 	cliWaitTimeList = configHashMap['cliWaitTime'].split(",")
 	coWaitTimeList = configHashMap['coWaitTime'].split(",")
 	actionList = configHashMap['action'].split(",")
+	mightWriteList = configHashMap['mightWrite'].split(",")
 
 	setDefRead(subIdList,resIdList,configHashMap['defRead'])
 	setMightRead(subIdList,resIdList,configHashMap['mightRead'])
@@ -89,25 +90,31 @@ def readConfigFile(fileName):
 	configHashMap['cliWaitTime']=cliWaitTimeList
 	configHashMap['coWaitTime']=coWaitTimeList
 	configHashMap['action']=actionList
+	configHashMap['mightWrite']=mightWriteList
 	return configHashMap
 
 
 def findObject(appReq, order):
-	if(appReq.subId > appReq.resId):
-		obj1 = appReq.subId
-		obj2 = appReq.resId
-	else:
-		obj1 = appReq.resId
-		obj2 = appReq.subId
-			
+
+	if(appReq.mightWrite!=0):
+			obj1=int(appReq.subId)+int(appReq.resId)-appReq.mightWrite
+			obj2=appReq.mightWrite	
+	else:			
+		if(appReq.subId > appReq.resId):
+			obj1 = appReq.subId
+			obj2 = appReq.resId
+		else:
+			obj1 = appReq.resId
+			obj2 = appReq.subId
+				
 	if(order == 1):
-		return obj1
+		return str(obj1)
 	else:
-		return obj2
+		return str(obj2)
 
 #App Request Object Class
 class AppRequest():
-	def __init__(self,subId,resId,action, waitTime,clientProcId):
+	def __init__(self,subId,resId,action, waitTime,mightWrite,clientProcId):
 		self.subId = subId
 		self.resId = resId
 		self.order = None
@@ -122,6 +129,7 @@ class AppRequest():
 		self.clientId = clientProcId
 		self.updates = None
 		self.waitTime=int(waitTime)
+		self.mightWrite=int(mightWrite)
 
 	def __repr__(self):
 		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)

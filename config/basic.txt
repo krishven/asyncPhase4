@@ -8,6 +8,7 @@ coWaitTime=0,0
 action=read,read
 defRead=(position,viewCount),(position,viewCount)
 mightRead=(type),(type)
+mightWrite=0,0
 numWorkers=1
 dbFile=database.xml
 random=0
