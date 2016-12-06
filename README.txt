@@ -48,17 +48,13 @@ BUGS AND LIMITATIONS:
 
 ASSUMPTIONS:
 -----------
-1. For readonly requests, the order is decided based on 
+1. For readonly requests, the order is decided based on the value of subject id/resource id
 
 2. If there are multiple clients, the requests will be equally distributed in round robin fashion. For example, it there are five requests and 3 clients, then 1st client will handle 1st and 4th request, while second client will handle 2nd and 5th request and third client will handle 3rd request.
 
-3. For number of Workers per coordinator parameter, we randomly assigned equal number of unique workers to each resource coordinator.
+3. For number of Workers per coordinator parameter, we randomly assigned equal number of unique workers to each coordinator.
 
-4. Subject IDs and Resource IDs should be integers and unique i.e subject and resource cannot have the same ID.
-
-5. Subject IDs and Resource IDs will be comma separared in config file and the number of requests is considered as length of either subject IDs or the length of resource Ids if not generating random requests.
-
-6. By default, random is false unless otherwise specified. 
+4. By default, random is false unless otherwise specified. 
 
 CONTRIBUTIONS:
 -------------
@@ -73,8 +69,7 @@ Venkatakrishnan Rajagopalan:
 Tamilmani Manoharan:
 --------------------
 1. Handled Process creation, communication between different processes, overall setup and modularizing code
-2. Designed config file and constructing requests based on the parameters in config file. 
-3. Generating random requests based on the parameters in config file.
-4. Handled the logic of mapping subject coordinators and resource coordinators based on subjectId and resourceId
-5. Assigning workers to Resource coordinator so that Resource coordinator will communicate with only those workers
-6. Handled DB emulator proess functionalities like DB read and DB write
+2. Implemented policy functions like defRead,mightRead,mightWrite 
+3. Handled the task of preventing write starvation
+4. Designed config file and constructing requests based on the parameters in config file.
+5. Handled DB emulator proess functionalities like DB read and DB write
