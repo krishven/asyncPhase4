@@ -1,0 +1,82 @@
+Rules:
+-----
+
+subid 1 - user A (employee, history = empty)
+subid 2 - user B (employee, history = bank A)
+subid 3 - user C (employee, history = bank B)
+subid 4 - user D (customer)
+resid 5 - bank A
+resid 6 - bank B
+resid 7 - movie(Avengers) viewcount - 0
+
+Based on the data in database.xml and rules to match in policy-example.xml, we
+can say that only the following cases would return True:
+
+user A can read any bank for first time and continue reading same bank
+user B and C already read one bank, so can continue reading that bank only
+user C can view the movie Avengers till its viewcount is 5
+
+Any other combination is False, for example:
+
+user D cannot read any bank
+user C cannot read Bank A
+user A cannot view the movie etc
+
+
+Basic test cases:
+----------------
+
+file: config/basic.txt
+
+A basic configuration.
+
+2 tries to read 5 - success
+3 tries to read 6 - success
+
+Stress testing:
+--------------
+
+file: config/random.txt
+
+Takes a set of ids and actions, defRead, mightRead, generates predefined no.of
+random requests and evaluates them.
+
+Outputs should not have any error and should also agree with the rules defined
+at the start.
+
+Write-Read:
+-----------
+
+file: config/WRconflict.txt
+
+One write and one read request are sent one after other, the write request while
+being evaluated in the worker, read request updates the read timestamp of a 
+common version. So when write returns to co-ordinator after evaluation, results
+in a conflict and it's restarted.
+
+Write-Write:
+------------
+
+file: config/WWstarvation.txt
+
+Two write requests sent, the second write request goes into wait queue due to 
+common pendingMightWrite, then starts after first request is done.
+
+Starvation:
+-----------
+
+file: config/starvation.txt
+
+One write request sent, when the write request is in co-ordinator after worker 
+evaluation, read request comes. this read request is put in wait queue till
+write request completes, then it's started.
+
+Conflict 2:
+-----------
+
+file: config/conflict2.txt
+
+One read request while being evaluated, a write request with common attributes 
+is blocked in await queue. When read request completes and updates 
+pendingMightRead attribute's timestamp, now write exits from await but conflicts
+due to newly updated timestamp in pendingMightRead. So it is restarted.
