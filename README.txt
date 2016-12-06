@@ -18,26 +18,26 @@ INSTRUCTIONS:
 MAIN FILES:
 ----------
 
-1. Master Process - <rootdir/src/main.da>   
+1. Master Process - <rootdir/main.da>   
 	This is the main process which starts all other process based on the parameters read from config file.
 
-2. Client Process - <rootdir>/src/Client.da
+2. Client Process - <rootdir>/Client.da
 	Constructs policy evaluation request based on parameters from config file and then sends and wait for the response. It identifies the first coordinator and forwards the request to it
 
-3. Coordinator Process - <rootdir>/src/Coordinator.da
+3. Coordinator Process - <rootdir>/Coordinator.da
 	This file contains code for Coordinator Process which handles both read and write requests and communicates with Client, Worker and second Coordinator to evaluate a policy request
 
-4. Worker Process - <rootdir>/src/Worker.da
+4. Worker Process - <rootdir>/Worker.da
 	The Worker process handles requests from Coordinator 2 and communicates with DB inorder to evaluate a policy request based on the rules specified. The policy evaluation is done here and it sends the results back to respective Coordinators and client 	
 	
-5. Database Emulator Process - <rootdir>/src/DbEmulator.da
+5. Database Emulator Process - <rootdir>/DbEmulator.da
 	The database emulator maintains an in memory data structure to store the information received from Coordinator and also send this data to Worker if any requested.
 
-6. Common functions and data structure - <rootdir>/src/common.da
+6. Common functions and data structure - <rootdir>/common.da
 	This file contains common function and common data structure which will be used by all processes.
 
-7. Rules/Policies to be evaluated - <rootdir>/config/policy.xml
-9. Database file to be read into in memory db cache - <rootdir>/src/database.xml
+7. Rules/Policies to be evaluated - <rootdir>/policy.xml
+9. Database file to be read into in memory db cache - <rootdir>/database.xml
 9. Config files for different test cases - <rootdir>/config/*.txt
 
 
@@ -62,8 +62,8 @@ Venkatakrishnan Rajagopalan:
 ----------------------------
 1. Read from database.xml and initialized the database
 2. Wrote the Worker co-ordinator logic including but not limited to policy evaluation after reading and interpreting conditions, evaluating and storing updates to request
-3. Wrote the Subject co-ordinator logic including but not limited to storing/updating tentative attributes, reading from tentative attributes, storing attribute updates and checking for conflicts, checking for tentative parent's status, restarting a request properly in case of conflict or parent tentative failure
-4. Resource co-ordinator conflict check logic
+3. Wrote the co-ordinator logic including but not limited to read request, write request and read/update response from Worker
+4. Also implemented various functions like latestVersionBefore, conflict check, cached updates, restart request etc.
 5. Generated various test case scenarios and stored them in corresponding config files for reproduction
 
 Tamilmani Manoharan:
