@@ -35,6 +35,8 @@ class Client(process):
 		self.configHashMap['action'] = generateRandomList('action')
 		self.configHashMap['coWaitTime'] = generateRandomList('coWaitTime')
 		self.configHashMap['cliWaitTime'] = generateRandomList('cliWaitTime')
+		self.configHashMap['writeWaitTime'] = generateRandomList('writeWaitTime')
+		self.configHashMap['workerWaitTime'] = generateRandomList('workerWaitTime')
 		self.configHashMap['uniqueId'] = generateRandomList('uniqueId')
 		self.configHashMap['mightWriteObj'] = generateRandomList('mightWriteObj')
 
