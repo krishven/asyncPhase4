@@ -80,3 +80,16 @@ One read request while being evaluated, a write request with common attributes
 is blocked in await queue. When read request completes and updates 
 pendingMightRead attribute's timestamp, now write exits from await but conflicts
 due to newly updated timestamp in pendingMightRead. So it is restarted.
+
+Performance Evaluation:
+-----------------------
+
+We ran 500 and 1000 simple requests for both Decat+ and MVCC-TSO implementations.
+
+Decat+
+500 requests - 4999 milliseconds
+1000 requests - 9596 milliseconds
+
+MVCC-TSO
+500 requests - 4149 milliseconds
+1000 requests - 8340 milliseconds
