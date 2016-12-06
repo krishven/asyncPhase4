@@ -207,7 +207,7 @@ class Coordinator(process):
 
 		for attr in common.mightWriteAttr(req):
 			v=latestVersionBefore(obj,attr,req.ts)
-			output("pending:",attr)
+			#output("pending:",attr)
 			v.pendingMightWrite.append(req.id)	
 			#output("V:",versionMap)
 
