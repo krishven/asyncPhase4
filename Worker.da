@@ -228,6 +228,7 @@ class Worker(process):
 		#print(req.updates)
 
 		if(req.updateIndex == -1):
+			time.sleep(req.workerWaitTime)
 			send(("RESULT_RDONLY",req,),to=req.clientId)
 			for i in range(1,3):
 				obj = common.findObject(req,i)

@@ -59,6 +59,8 @@ class Client(process):
 		cliWaitTime = configHashMap['cliWaitTime']
 		coWaitTime = configHashMap['coWaitTime']
 		mightWriteObj = configHashMap['mightWriteObj']
+		writeWaitTime = configHashMap['writeWaitTime']
+		workerWaitTime = configHashMap['workerWaitTime']
 		#mightWriteAttr = configHashMap['mightWriteAttr']
 		#print("numreq",len(subIdList))
 
@@ -66,7 +68,7 @@ class Client(process):
 		while (i<len(subIdList)):
 			time.sleep(int(cliWaitTime[i]))
 			#print("Request send")
-			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],mightWriteObj[i],self.id)
+			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],mightWriteObj[i],writeWaitTime[i],workerWaitTime[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)
 			appReq.order = 1

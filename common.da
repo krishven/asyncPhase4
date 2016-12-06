@@ -144,6 +144,8 @@ def readConfigFile(fileName):
 	coWaitTimeList = configHashMap['coWaitTime'].split(",")
 	actionList = configHashMap['action'].split(",")
 	mightWriteObjList = configHashMap['mightWriteObj'].split(",")
+	writeWaitTime = configHashMap['writeWaitTime'].split(",")
+	workerWaitTime = configHashMap['workerWaitTime'].split(",")
 
 
 	if 'random' in configHashMap and int(configHashMap['random'])==1:
@@ -161,6 +163,8 @@ def readConfigFile(fileName):
 	configHashMap['coWaitTime']=coWaitTimeList
 	configHashMap['action']=actionList
 	configHashMap['mightWriteObj']=mightWriteObjList
+	configHashMap['writeWaitTime']=writeWaitTime
+	configHashMap['workerWaitTime']=workerWaitTime
 #	configHashMap['mightWriteAttr']=mightWriteAttrList
 
 	return configHashMap
@@ -186,7 +190,7 @@ def findObject(appReq, order):
 
 #App Request Object Class
 class AppRequest():
-	def __init__(self,subId,resId,action, waitTime,mightWriteObj,clientProcId):
+	def __init__(self,subId,resId,action, waitTime,mightWriteObj,writeWaitTime,workerWaitTime,clientProcId):
 		self.subId = subId
 		self.resId = resId
 		self.order = None
@@ -201,6 +205,8 @@ class AppRequest():
 		self.clientId = clientProcId
 		self.updates = None
 		self.waitTime=int(waitTime)
+		self.writeWaitTime = int(writeWaitTime)
+		self.workerWaitTime = int(workerWaitTime)
 		self.mightWriteObj=int(mightWriteObj)
 		#self.mightWriteAttr=mightWriteAttr
 
