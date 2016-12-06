@@ -1,0 +1,86 @@
+import sys
+import os
+import random
+import time
+
+common = import_da('common')
+coordinator = import_da('Coordinator') 
+#resource = import_da('ResourceCoordinator')
+client = import_da('Client')
+worker = import_da('Worker')
+dbEmulator = import_da('DbEmulator')
+#common = import_da('common')
+
+#configHashMap={}
+coProcessHashMap={}
+cliProcessHashMap={}
+workerProcHashMap={}
+configHashMap={}
+workerResCoMap={}
+
+def main():
+    #output("corregct")
+    configHashMap = common.readConfigFile(sys.argv[1])
+    numCoordinators = int(configHashMap['numCoordinators'])
+    numWorkers = int(configHashMap['numWorkers'])
+    totalWorkers = numWorkers * numCoordinators
+
+    coProcIds = new(coordinator.Coordinator, num = int(numCoordinators))
+    clientProcIds = new(client.Client, num = int(configHashMap['numClients']))
+    workerProcIds = new(worker.Worker, num = totalWorkers)
+    dbEmulatorId = new(dbEmulator.DbEmulator,num = 1)
+
+
+    i=0
+
+    for procId in clientProcIds:
+        cliProcessHashMap[i]=procId           
+        i+=1
+
+ 
+    i=0
+
+    for procId in coProcIds:
+        coProcessHashMap[i]= procId           
+        i+=1
+
+    i=0
+    for procId in workerProcIds:
+        workerProcHashMap[i] = procId
+        i+=1   
+
+
+    i=0
+    for procId in workerProcIds:
+        workerProcHashMap[i] =procId
+        i+=1   
+
+    i=0
+    k=0
+    for procId in coProcIds:
+        workerList=[]
+        #print("numworkers",numWorkersList[i])
+        j=0
+        while(j<numWorkers):
+            workerList.append(workerProcHashMap[k])
+            j+=1
+            k+=1
+        workerResCoMap[procId] = workerList    
+        i+=1
+
+
+
+
+    i=0
+    for procId in clientProcIds:
+        cliProcessHashMap[procId] = i
+        i+=1   
+
+    setup(coProcIds,(sys.argv[1],coProcessHashMap,workerResCoMap,dbEmulatorId,))
+    setup(clientProcIds,(sys.argv[1],coProcessHashMap,cliProcessHashMap,))
+    setup(workerProcIds,(sys.argv[1],coProcessHashMap,dbEmulatorId,))
+    setup(dbEmulatorId,(sys.argv[1],))
+    start(dbEmulatorId)    
+    start(coProcIds)
+    start(clientProcIds)
+    start(workerProcIds)

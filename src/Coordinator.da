@@ -1,0 +1,312 @@
+common = import_da('common')
+dbEmulator = import_da('DbEmulator')
+import logging
+
+import time
+import uuid
+import copy
+import pprint
+
+#stores all original requests indexed by unique id
+requests = {}
+versionMap = {}
+cachedUpdates = {}
+recentUpdates = {}
+delayQueueMap = {}
+
+
+class Version():
+	def __init__(self,rts,wts):
+		self.rts = rts
+		self.wts = wts
+		self.pendingMightRead = []
+		self.pendingMightWrite = []
+
+	def __repr__(self):
+		return "<Version rts:%s wts:%s pmr:%s pmw:%s>" % (self.rts, self.wts, self.pendingMightRead,self.pendingMightWrite)
+
+	def __str__(self):
+		return "Version rts:%s, wts:%s pmr:%s pmw:%s" % (self.rts, self.wts, self.pendingMightRead,self.pendingMightWrite)
+
+class Coordinator(process):
+	def setup(configFile:str,coIdMap:dict,workerResCoMap:dict,dbId:dbEmulator.DbEmulator):
+		self.configHashMap={}
+		self.workerIndex=0
+
+	def run():
+		#output("hello SubCo!")
+		self.configHashMap = common.readConfigFile(configFile)
+		#output("Hello Im coordinator!!!")
+		await(False)
+
+	def getCachedUpdates(obj,req):
+		cache = {}
+		readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
+		if obj in cachedUpdates:
+			updates = cachedUpdates[obj]
+			for item in updates:
+				if item in readAttr:
+					cache[item] = updates[item]
+		return cache
+
+	def latestVersionBefore(obj, attr, ts):
+		v = None
+		if (obj, attr) in versionMap:
+			versionList = versionMap[(obj, attr)]
+			#sort version list based on timestamp
+			sortedVersionList = sorted(versionList, key=lambda x: x.wts)
+			#output("vlist",sortedVersionList)
+			prev = None
+			for v in sortedVersionList:
+				if(v.wts >= ts):
+					break
+				prev = v
+			
+			v = prev
+		
+		if(not v):
+			v = Version(0, 0)
+			if (obj, attr) in versionMap:
+				versionMap[(obj, attr)].append(v)
+			else:
+				versionMap[(obj, attr)] = []
+				versionMap[(obj, attr)].append(v)
+
+		return v
+
+	def restart(req):
+		originalReq = requests[req.id]
+		obj = common.findObject(originalReq, 1)
+		coordinatorId = findCoordinator(obj)
+		req.order = 1
+		output('Restart!')
+		send(('READ_REQUEST',req,),to=coordinatorId)
+
+	def checkForConflicts(req):
+		obj = common.findObject(req, req.updateIndex)
+		item = req.updates
+		# note: if obj.attr has not been read or written in this session, then
+		# v is the special version with v.rts=0 and v.wts=0.
+		v = latestVersionBefore(obj, item['attrName'], req.ts)
+		#print('Check',v.rts,req.ts)
+		if v.rts > req.ts:
+			output('Conflict!')
+			return True
+		return False
+
+	def findCoordinator(obj):
+		numCoordinators = int(configHashMap['numCoordinators'])
+		index = int(obj)%numCoordinators
+		return coIdMap[index]
+	
+	def getWorker():
+		numWorkers = int(configHashMap['numWorkers'])
+		workerList = workerResCoMap[self.id]
+		index = self.workerIndex % numWorkers
+		self.workerIndex+=1
+		if(workerIndex>=numWorkers):
+			workerIndex=0
+		return workerList[index]
+
+	def cleanUp(obj, req):
+		result = req.updates
+		#print('Read Attr',req.readAttr[req.updateIndex - 1])
+
+		#output("check pnding write")
+		for attr in common.mightWriteAttr(req):
+			#output("attr",attr)
+			v = latestVersionBefore(obj, attr, req.ts)
+			#output("versionmap",versionMap)
+			if req.id in v.pendingMightWrite:
+				#print ("Id in pending write")
+				v.pendingMightWrite.remove(req.id)
+				#print("delay q map:",delayQueueMap)
+				if req.id in delayQueueMap:
+					newReq = delayQueueMap[req.id]
+					restart(newReq)
+
+		for attr in common.defReadAttr(obj,req) + common.mightReadAttr(obj,req):
+			v = latestVersionBefore(obj,attr,req.ts)
+			if req.id in v.pendingMightRead:
+				v.pendingMightRead.remove(req.id)
+			if result['value'] and attr in req.readAttr[req.updateIndex - 1]:
+				v.rts = req.ts
+				#print('Cleanup',v.rts,req.ts)	
+
+
+		send(("RESULT_UPDATE",req,),to=req.clientId)
+		obj = common.findObject(req, req.rdOnlyIndex)
+		req.order = req.rdOnlyIndex
+		coordinatorId = findCoordinator(obj)
+		send(("RESULT_RDONLY",req,),to=coordinatorId)
+
+	def receive(msg=('READ_REQUEST',req), from_=recvProcId):
+		output("Received read req from client")
+		requests[req.id] = copy.deepcopy(req)
+		order = req.order
+		obj = common.findObject(req, order)
+		isPresent=False
+
+		if(order == 1):
+			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
+			for attr in readAttr:
+				pmw = latestVersionBefore(obj,attr,req.ts).pendingMightWrite
+
+				#print (attrList,readAttr)
+				if(len(pmw)>0):
+					output("A write request is starving. Try after that!!!")
+					delayQueueMap[pmw[0]]=req
+					return	
+			req.ts = time.time()		
+
+		for attr in common.defReadAttr(obj, req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			v.rts = req.ts
+
+		for attr in common.mightReadAttr(obj, req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			v.pendingMightRead.append(req.id)
+
+		req.cachedUpdates[order] = getCachedUpdates(obj,req)
+
+		if(order == 1):
+			obj = common.findObject(req, 2)
+			coordinatorId = findCoordinator(obj)
+			req.order = 2
+			send(('READ_REQUEST',req,),to=coordinatorId)
+		else:
+			workerId = getWorker()
+			send(('READ_REQUEST',req,),to=workerId)
+
+	def receive(msg=('WRITE_REQUEST',req), from_=recvProcId):
+		output("Received write req from client")
+		requests[req.id] = copy.deepcopy(req)
+		order = req.order
+		obj = common.findObject(req, order)
+
+		if(order == 1):
+			readAttr = common.defReadAttr(obj,req) + common.mightReadAttr(obj,req)
+
+			for attr in readAttr:
+				pmw = latestVersionBefore(obj,attr,req.ts).pendingMightWrite
+				#print (attrList,readAttr)
+				if(len(pmw)>0):
+					output("A write request is starving. Try after that!!!")
+					delayQueueMap[pmw[0]]=req
+					return	
+			req.ts = time.time()
+			time.sleep(req.writeWaitTime)
+
+			#print('TS',req.ts)
+		
+		#print('Object',obj,'TS',req.ts)
+
+		for attr in common.defReadAttr(obj, req) + common.mightReadAttr(obj, req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			v.pendingMightRead.append(req.id)
+
+		for attr in common.mightWriteAttr(req):
+			v=latestVersionBefore(obj,attr,req.ts)
+			output("pending:",attr)
+			v.pendingMightWrite.append(req.id)	
+			#output("V:",versionMap)
+
+		req.cachedUpdates[order] = getCachedUpdates(obj,req)
+
+		if(order == 1):
+			obj = common.findObject(req, 2)
+			coordinatorId = findCoordinator(obj)
+			req.order = 2
+			send(('WRITE_REQUEST',req,),to=coordinatorId)
+		else:
+			workerId = getWorker()
+			send(('WRITE_REQUEST',req,),to=workerId)
+
+	def receive(msg=('RESULT_RDONLY',req), from_=recvProcId):
+		output("Received RESULT_RDONLY from Worker")
+		obj = common.findObject(req, req.order)
+		result = req.updates
+		for attr in common.mightReadAttr(obj, req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			if req.id in v.pendingMightRead:
+				v.pendingMightRead.remove(req.id)
+			if result['value'] and attr in req.readAttr[req.order - 1]:
+				v.rts = req.ts
+
+		#print('VM',versionMap)
+
+		for attr in common.mightWriteAttr(req):
+			v = latestVersionBefore(obj, attr, req.ts)
+			if req.id in v.pendingMightWrite:
+				v.pendingMightWrite.remove(req.id)
+				if req.id in delayQueueMap:
+					newReq = delayQueueMap[req.id]
+					restart(newReq)
+
+	def receive(msg=('RESULT_UPDATE',req), from_=recvProcId):
+		output("Received RESULT_UPDATE from Worker")
+		obj = common.findObject(req, req.updateIndex)
+
+		result = req.updates
+		if(result['update'] == False):
+			cleanUp(obj, req)
+			return
+
+		conflict = checkForConflicts(req)
+
+
+		time.sleep(req.waitTime)
+
+		if not conflict:		
+			print('Conflict 1 pass')
+			pmr = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead
+			count = latestVersionBefore(obj,result['attrName'],req.ts).pendingMightRead.count(req.id)
+			#print('Await',pmr,count)
+			#print('VM',versionMap)
+			await(len(pmr) == 0 or (len(pmr) == 1 and count == 1))
+
+			conflict = checkForConflicts(req)
+				
+			if not conflict:
+				print('Conflict 2 pass')
+				send(('DB_WRITE',req,),to=dbId)
+
+				if obj in cachedUpdates:
+					cache = cachedUpdates[obj]
+					cache[result['attrName']] = result['attrValue']
+				else:
+					cache = {}
+					cache[result['attrName']] = result['attrValue']
+					cachedUpdates[obj] = cache
+
+				newVersion = Version(0,0)
+				newVersion.wts = req.ts
+				#print('Updated',newVersion.wts)
+				
+				if (obj, result['attrName']) in versionMap:
+					versionMap[(obj,result['attrName'])].append(newVersion)
+				else:
+					versionMap[(obj,result['attrName'])] = []
+					versionMap[(obj,result['attrName'])].append(newVersion)
+
+				#print(versionMap)
+
+				cleanUp(obj, req)
+				
+				#print(cachedUpdates)
+	
+			else:
+				print('Conflict 2 fail')
+				cleanUp(obj, req)
+				restart(req)
+
+		else:
+			print('Conflict 1 fail')
+			cleanUp(obj, req)
+			restart(req)
+
+	def receive(msg=('DB_WRITE',req), from_=recvProcId):
+		obj = common.findObject(req,req.updateIndex)
+		cache = cachedUpdates[obj]
+		if req.updates['attrName'] in cache:
+			del cache[req.updates['attrName']]

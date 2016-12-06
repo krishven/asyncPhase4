@@ -1,0 +1,243 @@
+coordinator = import_da('Coordinator')
+common = import_da('common')
+dbEmulator = import_da('DbEmulator')
+
+import xml.etree.ElementTree as ET
+import time
+import logging
+
+database = {}
+
+class Worker(process):
+	def setup(configFile:str,coIdMap:dict,dbId: dbEmulator.DbEmulator):
+		self.configHashMap={}
+
+	def run():
+		self.configHashMap = common.readConfigFile(configFile)
+		#output("Hello from Worker!!!")
+		await(False)
+
+	def findCoordinator(obj):
+		numCoordinators = int(configHashMap['numCoordinators'])
+		index = int(obj)%numCoordinators
+		return coIdMap[index]
+
+	def checkValue(db, attrValue, sid, rid):
+		#if $ present in rule, return corresponding value
+		if '$' not in attrValue:
+			return attrValue
+		elif 'subject' in attrValue:
+			data = db[str(sid)]
+			return data['name']
+		elif 'resource' in attrValue:
+			data = db[str(rid)]
+			return data['name']
+
+	def checkUpdate(data, attrName, attrValue):
+		#evaluate increment or decrement in update
+		if(attrValue == '++'):
+			count = int(data[attrName])
+			count += 1
+			return str(count)
+
+		elif(attrValue == '--'):
+			count = int(data[attrName])
+			count -= 1
+			return str(count)
+
+		else:   
+			return attrValue
+
+	def checkCondition(attrName, attrValue, temp, cond, isTentative):
+		#evaluate > or < in condition
+
+		if "<" not in attrValue and ">" not in attrValue:
+			cond = cond and temp[attrName] == attrValue
+		elif "<" in attrValue:
+			cond = cond and int(temp[attrName]) < int(attrValue[1:])
+		elif ">" in attrValue:
+			cond = cond and int(temp[attrName]) > int(attrValue[1:])
+
+		return cond
+			
+	def evaluatePolicyRequest(database, req):
+		tree = ET.parse('policy.xml')
+		root = tree.getroot()
+		result = {}
+		result['value'] = False
+		result['update'] = False
+
+		for rule in root.iter('rule'):
+			subData = database[str(req.subId)]
+			subCond = True
+			tentUsed = False
+			subRule = []
+			sc = rule.find('subjectCondition')
+
+			for attrName, attrValue in sc.items():
+				#for each attribute value pair to be matched in subject condition
+				subRule.append(attrName)
+
+				if '$' in attrValue:
+					attrValue = checkValue(database, attrValue, req.subId, req.resId)
+
+				for i in range(1,3):
+					if req.cachedUpdates[i]:
+					#if any corresponding tentative updates are there, use them and not DB
+						items = req.cachedUpdates[i]
+						if attrName in items:
+							subCond = checkCondition(attrName, attrValue, items, subCond, True)
+							tentUsed = True
+							break
+
+				#make sure DB is not checked if tentative has been used
+				if tentUsed == True and subCond == True:
+					tentUsed = False
+					continue
+				elif tentUsed == True and subCond == False:
+					break
+
+				if attrName not in subData:
+					return result
+
+				subCond = checkCondition(attrName, attrValue, subData, subCond, False)
+
+				if subCond == False:
+					break
+
+			if subCond == False:
+				continue
+
+			resData = database[str(req.resId)]
+			resCond = True
+			tentUsed = False
+			resRule = []
+			rc = rule.find('resourceCondition')
+
+			for attrName, attrValue in rc.items():
+				#for each attribute value pair to be matched in resource condition
+				resRule.append(attrName)
+
+				if '$' in attrValue:
+					attrValue = checkValue(database, attrValue, req.subId, req.resId)
+
+				for i in range(1,3):
+					if req.cachedUpdates[i]:
+					#if any corresponding tentative updates are there, use them and not DB
+						items = req.cachedUpdates[i]
+						if attrName in items:
+							subCond = checkCondition(attrName, attrValue, items, subCond, True)
+							tentUsed = True
+							break
+
+				#make sure DB is not checked if tentative has been used
+				if tentUsed == True and resCond == True:
+					tentUsed = False
+					continue
+				elif tentUsed == True and resCond == False:
+					break
+
+				if attrName not in resData:
+					return result
+
+				resCond = checkCondition(attrName, attrValue, resData, resCond, False)
+
+				if resCond == False:
+					break
+
+			if resCond == False:
+				continue
+
+			action = rule.find('action')
+			action = action.attrib['name']
+			ac = req.action == action
+
+			result['value'] = result['value'] or (subCond and resCond and ac)
+
+			obj = common.findObject(req, 1)
+
+			if obj == req.subId:
+				req.readAttr.append(subRule)
+				req.readAttr.append(resRule)
+			else:
+				req.readAttr.append(resRule)
+				req.readAttr.append(subRule)
+
+			if result['value'] == True:
+				#if rule evaluated to True, store the subject or resource update to be done in the request and send it
+
+				su = rule.find('subjectUpdate')
+				if su != None:
+					if obj == req.subId:
+						req.updateIndex = 1
+					else:
+						req.updateIndex = 2
+
+					result['update'] = True
+					for attrName, attrValue in su.items():
+						result['type'] = 'subject'
+						result['attrName'] = attrName
+						result['attrValue'] = checkUpdate(subData, attrName, attrValue)
+						break
+
+				ru = rule.find('resourceUpdate')
+				if ru != None:
+					if obj == req.resId:
+						req.updateIndex = 1
+					else:
+						req.updateIndex = 2
+
+					result['update'] = True
+					for attrName, attrValue in ru.items():
+						result['type'] = 'resource'
+						result['attrName'] = attrName
+						result['attrValue'] = checkUpdate(resData, attrName, attrValue)
+						break
+				break
+
+		if result['value'] == True:
+			output(req.subId,req.action,req.resId, rule.attrib['name'], result['value'])
+		else:
+			output(req.subId,req.action,req.resId, 'Policy eval:', result['value'])
+		return result
+	
+	def receive(msg=('READ_REQUEST',req),from_=recvProcId):
+		
+		#output("Worker READ_REQUEST")
+		req.updateIndex = -1  #testing purpose
+
+		send(('DB_READ',req,),to=dbId)
+		#output("Sent content from Worker (DB READ) to DB:")
+
+	def receive(msg=('WRITE_REQUEST',req),from_=recvProcId):
+		
+		#output("Worker WRITE_REQUEST")
+		req.updateIndex = -1  #testing purpose
+
+		send(('DB_READ',req,),to=dbId)
+		#output("Sent content from Worker (DB READ) to DB:")
+
+	def receive(msg=('DB_READ',dbObj,), from_=subCoId):
+		req=dbObj.reqObject
+		database=dbObj.database
+		req.updateIndex = -1 
+		#output("Received content in Worker (DB READ) from DB:",req)
+		
+		req.updates = evaluatePolicyRequest(database, req)
+
+		#print(req.updates)
+
+		if(req.updateIndex == -1):
+			time.sleep(req.workerWaitTime)
+			send(("RESULT_RDONLY",req,),to=req.clientId)
+			for i in range(1,3):
+				obj = common.findObject(req,i)
+				req.order = i
+				coordinatorId = findCoordinator(obj)
+				send(("RESULT_RDONLY",req,),to=coordinatorId)
+		else:
+			time.sleep(1)
+			obj = common.findObject(req, req.updateIndex)
+			coordinatorId = findCoordinator(obj)
+			req.rdOnlyIndex = 3 - req.updateIndex
+			send(("RESULT_UPDATE",req,),to=coordinatorId)
