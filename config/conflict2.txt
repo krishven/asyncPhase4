@@ -1,0 +1,17 @@
+numCoordinators=6
+numClients=2
+subjectId=4,4
+resourceId=7,7
+uniqueId=1,1
+cliWaitTime=1,0
+coWaitTime=0,0
+writeWaitTime=0,2
+workerWaitTime=5,0
+action=read,view
+defRead=(position,type),(position,type)
+mightRead=(viewCount),(viewCount)
+mightWriteObj=0,7
+mightWriteAttr=0,0
+numWorkers=1
+dbFile=database.xml
+random=0

@@ -29,6 +29,12 @@
     <action name="read"></action>
   </rule>
 
+  <rule name="read movie name">
+    <subjectCondition position="customer"></subjectCondition>
+    <resourceCondition type="movie" viewCount="&lt;5"></resourceCondition>
+    <action name="read"></action>
+  </rule>
+
   <rule name="customers collectively can view each movie at most 5 times">
     <subjectCondition position="customer"></subjectCondition>
     <resourceCondition type="movie" viewCount="&lt;5"></resourceCondition>
