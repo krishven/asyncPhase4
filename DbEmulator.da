@@ -7,6 +7,7 @@ import xml.etree.ElementTree as ET
 import logging
 import collections
 import copy
+import random
 
 database={}
 
@@ -64,8 +65,8 @@ class DbEmulator(process):
 		#DB Write request
 		output("Received content in DB (COMMIT) from SC {0}:".format(srcId),reqObject,level=logging.DEBUG)
 		#delay if latency specified
-		if('dbLatency' in self.configHashMap):
-			delay = int(self.configHashMap['dbLatency'])
+		if('minDbLatency' in self.configHashMap and 'maxDbLatency' in configHashMap):
+			delay = random.randint(int(configHashMap['minDbLatency']),int(configHashMap['maxDbLatency']))			
 			time.sleep(delay)
 		
 		tempDb = collections.OrderedDict(sorted(database.items()))
