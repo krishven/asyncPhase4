@@ -54,7 +54,6 @@ class DbEmulator(process):
 
 		self.dbObj.database = database[tsReq]			
 		self.dbObj.reqObject = reqObject
-		output('Read from database')
 		#pp = pprint.PrettyPrinter(indent=4)
 		#pp.pprint(self.dbObj.database)
 

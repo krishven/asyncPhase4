@@ -38,9 +38,9 @@ class Client(process):
 		self.configHashMap['uniqueId'] = generateRandomList('uniqueId')
 		self.configHashMap['mightWriteObj'] = generateRandomList('mightWriteObj')
 
-		common.generateDefReadMap(configHashMap['subjectId'],configHashMap['resourceId'])
-		common.generateMightReadMap(configHashMap['subjectId'],configHashMap['resourceId'])
-		common.generateMightWriteMap(configHashMap['subjectId'],configHashMap['resourceId'],configHashMap['action'])
+		# common.generateDefReadMap(configHashMap['subjectId'],configHashMap['resourceId'])
+		# common.generateMightReadMap(configHashMap['subjectId'],configHashMap['resourceId'])
+		# common.generateMightWriteMap(configHashMap['subjectId'],configHashMap['resourceId'],configHashMap['action'])
 
 
 	def run():
@@ -60,12 +60,12 @@ class Client(process):
 		coWaitTime = configHashMap['coWaitTime']
 		mightWriteObj = configHashMap['mightWriteObj']
 		#mightWriteAttr = configHashMap['mightWriteAttr']
-
+		#print("numreq",len(subIdList))
 
 		i=clientId[self.id]%numClients
 		while (i<len(subIdList)):
 			time.sleep(int(cliWaitTime[i]))
-			print("Request send")
+			#print("Request send")
 			appReq = common.AppRequest(subIdList[i],resIdList[i],actionList[i],coWaitTime[i],mightWriteObj[i],self.id)
 			obj = common.findObject(appReq,1)
 			coordinatorId = findCoordinator(obj)

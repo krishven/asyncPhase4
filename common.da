@@ -34,7 +34,12 @@ def setDefRead(subList,resList,defReadVal,actionList):
 
 def defReadAttr(obj,req):
 	#print("def",defReadMap)
-	value = defReadMap[(req.subId,req.resId,req.action)]
+	if('random' in configHashMap and int(configHashMap['random'])==1):
+		#print("random")
+		value=[]
+		value.append("viewCount")
+	else:	
+		value = defReadMap[(req.subId,req.resId,req.action)]
 	#print(value)
 	return value
 
@@ -87,7 +92,11 @@ def setMightRead(subList,resList,mightReadVal,actionList):
 	pass
 
 def mightReadAttr(obj,req):
-	value = mightReadMap[(req.subId,req.resId,req.action)]
+	if('random' in configHashMap and int(configHashMap['random'])==1):
+		value=[]
+		value.append("type")
+	else:	
+		value = mightReadMap[(req.subId,req.resId,req.action)]
 	#print(value)
 	return value
 
@@ -109,7 +118,11 @@ def setMightWriteAttr(subList,resList,mightWriteVal,actionList):
 	pass
 
 def mightWriteAttr(req):
-	value = mightWriteMap[(req.subId,req.resId,req.action)]
+	if('random' in configHashMap and int(configHashMap['random'])==1):
+		value=[]
+		#value.append("viewCount")
+	else:	
+		value = mightWriteMap[(req.subId,req.resId,req.action)]
 	#print(value)
 	return value
 
