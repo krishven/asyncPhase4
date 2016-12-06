@@ -1,0 +1,15 @@
+numCoordinators=6
+numClients=2
+subjectId=4,4,1,1,2,3,2,4,4,1,1,2,3,2
+resourceId=7,7,5,5,5,6,6,7,7,5,5,5,6,6
+uniqueId=1,1,0,0,0,0,0,1,1,0,0,0,0,0
+cliWaitTime=0,0,0,0,0,0,0,0,0,0,0,0,0,0
+coWaitTime=0,0,0,0,0,0,0,0,0,0,0,0,0,0
+action=view,view,read,read,view,read,read,view,view,read,read,view,read,read
+defRead=(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount),(position,history,viewCount)
+mightRead=(type),(type),(type),(type),(type),(type),(type),(type),(type),(type),(type),(type),(type),(type)
+mightWriteObj=7,7,5,5,5,0,0,7,7,5,5,5,0,0
+mightWriteAttr=viewCount,viewCount,0,0,0,0,0,viewCount,viewCount,0,0,0,0,0
+numWorkers=1
+dbFile=database.xml
+random=0

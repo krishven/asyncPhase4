@@ -1,5 +1,6 @@
 import time
 import uuid
+import random
 
 configHashMap={}
 objHashMap={}
@@ -23,7 +24,7 @@ def setDefRead(subList,resList,defReadVal,actionList):
 					#print("k:"+subItem+":L")
 					defReadList.append(subItem)
 			
-			defReadMap[(subList[i],resList[i])]=defReadList
+			defReadMap[(subList[i],resList[i],actionList[i])]=defReadList
 			i+=1
 			defReadList=[]
 
@@ -32,9 +33,35 @@ def setDefRead(subList,resList,defReadVal,actionList):
 	pass
 
 def defReadAttr(obj,req):
-	value = defReadMap[(req.subId,req.resId)]
+	#print("def",defReadMap)
+	value = defReadMap[(req.subId,req.resId,req.action)]
 	#print(value)
 	return value
+
+def generateDefReadMap(subIdList,resIdList):
+	randList=[]
+	tempList = ['position','history','viewCount','type']
+	for i in range(0,len(subIdList)):
+		index = random.randint(0,len(tempList)-1)
+		randList.append(tempList[index])
+		defReadMap[(subIdList[i],resIdList[i])]=randList
+	#print("defreadmap",defReadMap)		
+
+def generateMightReadMap(subIdList,resIdList):
+	randList=[]
+	tempList = ['position','history','viewCount','type']
+	for i in range(0,len(subIdList)):
+		index = random.randint(0,len(tempList)-1)
+		randList.append(tempList[index])
+		mightReadMap[(subIdList[i],resIdList[i])]=randList
+
+def generateMightWriteMap(subIdList,resIdList,actionList):
+	randList=[]
+	tempList = ['position','history','viewCount','type']
+	for i in range(0,len(subIdList)):
+		index = random.randint(0,len(tempList)-1)
+		randList.append(tempList[index])
+		mightWriteMap[(subIdList[i],resIdList[i],actionList[i])]=randList
 
 def setMightRead(subList,resList,mightReadVal,actionList):
 	mightReadList=[]
@@ -51,7 +78,7 @@ def setMightRead(subList,resList,mightReadVal,actionList):
 				if(subItem!=""):
 					#print("k:"+subItem+":L")
 					mightReadList.append(subItem)
-			mightReadMap[(subList[i],resList[i])]=mightReadList
+			mightReadMap[(subList[i],resList[i],actionList[i])]=mightReadList
 			i+=1
 			mightReadList=[]
 
@@ -60,7 +87,7 @@ def setMightRead(subList,resList,mightReadVal,actionList):
 	pass
 
 def mightReadAttr(obj,req):
-	value = mightReadMap[(req.subId,req.resId)]
+	value = mightReadMap[(req.subId,req.resId,req.action)]
 	#print(value)
 	return value
 
@@ -106,9 +133,13 @@ def readConfigFile(fileName):
 	mightWriteObjList = configHashMap['mightWriteObj'].split(",")
 
 
-	setDefRead(subIdList,resIdList,configHashMap['defRead'],actionList)
-	setMightRead(subIdList,resIdList,configHashMap['mightRead'],actionList)
-	setMightWriteAttr(subIdList,resIdList,configHashMap['mightWriteAttr'],actionList)
+	if 'random' in configHashMap and int(configHashMap['random'])==1:
+		pass
+	else:		
+		#print("not true",configHashMap['random'])
+		setDefRead(subIdList,resIdList,configHashMap['defRead'],actionList)
+		setMightRead(subIdList,resIdList,configHashMap['mightRead'],actionList)
+		setMightWriteAttr(subIdList,resIdList,configHashMap['mightWriteAttr'],actionList)
 
 	configHashMap['subjectId']=subIdList
 	configHashMap['resourceId']=resIdList
@@ -142,7 +173,7 @@ def findObject(appReq, order):
 
 #App Request Object Class
 class AppRequest():
-	def __init__(self,subId,resId,action, waitTime,mightWriteObj,mightWriteAttr,clientProcId):
+	def __init__(self,subId,resId,action, waitTime,mightWriteObj,clientProcId):
 		self.subId = subId
 		self.resId = resId
 		self.order = None
@@ -158,7 +189,7 @@ class AppRequest():
 		self.updates = None
 		self.waitTime=int(waitTime)
 		self.mightWriteObj=int(mightWriteObj)
-		self.mightWriteAttr=mightWriteAttr
+		#self.mightWriteAttr=mightWriteAttr
 
 	def __repr__(self):
 		return "<ReqObj subId:%s resId:%s>" % (self.subId, self.resId)
